@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukoon/core/content/app_content.dart';
 import 'package:sukoon/core/state/app_state.dart';
+import 'package:sukoon/core/theme/app_theme.dart';
 import 'package:sukoon/shared/widgets/common_widgets.dart';
 
 class DetoxDashboardScreen extends ConsumerWidget {
@@ -30,114 +31,173 @@ class DetoxDashboardScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          SukoonSectionCard(
-            title: store.tr('Your attention today', 'Aaj tumhari tawajju'),
-            subtitle: baseline == null
-                ? store.tr(
-                    'Usage analytics are in manual mode here.',
-                    'Yahan usage analytics manual mode mein hain.',
-                  )
-                : store.tr(
-                    'Compared with your personal baseline.',
-                    'Tumhari apni baseline ke muqablay mein.',
-                  ),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                MetricChip(
-                  label: store.tr('Baseline', 'Baseline'),
-                  value: baseline == null ? 'Manual' : '$baseline m',
-                ),
-                MetricChip(
-                  label: store.tr('Recent', 'Recent'),
-                  value: recent == null ? 'Manual' : '$recent m',
-                ),
-                MetricChip(
-                  label: store.tr('Completed sessions', 'Completed sessions'),
-                  value: '${store.completedDetoxSessions.length}',
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          SukoonSectionCard(
-            title: store.tr('Start a session', 'Session shuru karo'),
-            subtitle: store.tr(
-              'Conscious choice over strict punishment.',
-              'Sakht saza ke bajaye hoshmand intekhab.',
-            ),
-            child: Column(
-              children: [
-                for (final key in AppContent.sessionDurations.keys)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      tileColor: Colors.white,
-                      title: Text(store.pick(AppContent.sessionTitles[key]!)),
-                      subtitle: Text('${AppContent.sessionDurations[key]} min'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => context.push('/detox/session/$key'),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          SukoonSectionCard(
-            title: store.tr('Replacement idea', 'Replacement idea'),
-            child: Text(
-              store.pick(
-                AppContent.replacementActivities[DateTime.now().second %
-                    AppContent.replacementActivities.length],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SukoonSectionCard(
-            title: store.tr('Challenge', 'Challenge'),
-            subtitle: activeChallenge == null
-                ? store.tr(
-                    'No challenge active.',
-                    'Koi challenge active nahin.',
-                  )
-                : '${activeChallenge.name} · ${activeChallenge.completedDays}/${activeChallenge.totalDays}',
-            trailing: FilledButton.tonal(
-              onPressed: () => context.push('/detox/challenge'),
-              child: Text(store.tr('Open', 'Kholo')),
-            ),
-            child: Text(
-              store.tr(
-                'Multi-day challenges help you rebuild attention gently.',
-                'Multi-day challenges tumhari tawajju ko narmi se dobara bananay mein madad karte hain.',
-              ),
-            ),
-          ),
-          if (store.shouldShowFomoReframe) ...[
-            const SizedBox(height: 16),
+      body: SukoonContent(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+          children: [
             SukoonSectionCard(
-              title: store.tr('FOMO reframe journal', 'FOMO reframe journal'),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              title: store.tr('Your quiet space', 'Aap ki khamosh jagah'),
+              subtitle: baseline == null
+                  ? store.tr(
+                      'Usage analytics are in manual mode here.',
+                      'Yahan usage analytics manual mode mein hain.',
+                    )
+                  : store.tr(
+                      'Compared with your personal baseline.',
+                      'Tumhari apni baseline ke muqablay mein.',
+                    ),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  Text(store.correlationSummary),
-                  const SizedBox(height: 12),
-                  FilledButton.tonal(
-                    onPressed: () =>
-                        context.push('/journal/editor/new?promptId=fomo'),
-                    child: Text(store.tr('Open prompt', 'Prompt kholo')),
+                  MetricChip(
+                    label: store.tr('Baseline', 'Baseline'),
+                    value: baseline == null ? 'Manual' : '$baseline m',
+                    icon: Icons.query_stats_rounded,
+                  ),
+                  MetricChip(
+                    label: store.tr('Recent', 'Recent'),
+                    value: recent == null ? 'Manual' : '$recent m',
+                    icon: Icons.trending_down_rounded,
+                  ),
+                  MetricChip(
+                    label: store.tr('Sessions', 'Sessions'),
+                    value: '${store.completedDetoxSessions.length}',
+                    icon: Icons.self_improvement_rounded,
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            SukoonSectionCard(
+              title: store.tr(
+                'Start a focus session',
+                'Focus session shuru karo',
+              ),
+              subtitle: store.tr(
+                'Conscious choice over strict punishment.',
+                'Sakht saza ke bajaye hoshmand intekhab.',
+              ),
+              child: Column(
+                children: [
+                  for (final key in AppContent.sessionDurations.keys)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: InkWell(
+                        onTap: () => context.push('/detox/session/$key'),
+                        borderRadius: BorderRadius.circular(22),
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            color: key == 'quick'
+                                ? AppTheme.secondaryLight
+                                : key == 'study'
+                                ? AppTheme.primaryLight
+                                : key == 'morning'
+                                ? AppTheme.tertiaryLight
+                                : AppTheme.errorLight,
+                            borderRadius: BorderRadius.circular(22),
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Icon(
+                                  key == 'quick'
+                                      ? Icons.timer_rounded
+                                      : key == 'study'
+                                      ? Icons.book_rounded
+                                      : key == 'morning'
+                                      ? Icons.wb_sunny_rounded
+                                      : Icons.lock_rounded,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      store.pick(
+                                        AppContent.sessionTitles[key]!,
+                                      ),
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${AppContent.sessionDurations[key]} min',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right_rounded),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SukoonSectionCard(
+              title: store.tr('Replacement idea', 'Replacement idea'),
+              backgroundColor: AppTheme.primaryLight,
+              child: Text(
+                store.pick(
+                  AppContent.replacementActivities[DateTime.now().second %
+                      AppContent.replacementActivities.length],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SukoonSectionCard(
+              title: store.tr('Challenge', 'Challenge'),
+              subtitle: activeChallenge == null
+                  ? store.tr(
+                      'No challenge active.',
+                      'Koi challenge active nahin.',
+                    )
+                  : '${activeChallenge.name} · ${activeChallenge.completedDays}/${activeChallenge.totalDays}',
+              trailing: TextButton(
+                onPressed: () => context.push('/detox/challenge'),
+                child: Text(store.tr('Open', 'Kholo')),
+              ),
+              child: Text(
+                store.tr(
+                  'Multi-day challenges help you rebuild attention gently.',
+                  'Multi-day challenges tumhari tawajju ko narmi se dobara bananay mein madad karte hain.',
+                ),
+              ),
+            ),
+            if (store.shouldShowFomoReframe) ...[
+              const SizedBox(height: 16),
+              SukoonSectionCard(
+                title: store.tr('FOMO reframe journal', 'FOMO reframe journal'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(store.correlationSummary),
+                    const SizedBox(height: 12),
+                    FilledButton.tonal(
+                      onPressed: () =>
+                          context.push('/journal/editor/new?promptId=fomo'),
+                      child: Text(store.tr('Open prompt', 'Prompt kholo')),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -218,77 +278,79 @@ class _DetoxSessionScreenState extends ConsumerState<DetoxSessionScreen> {
 
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          SukoonSectionCard(
-            title: store.tr('Choose your replacement', 'Replacement chuno'),
-            subtitle: store.tr(
-              'What will your attention move toward instead?',
-              'Tumhari tawajju ab kis taraf jayegi?',
+      body: SukoonContent(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            SukoonSectionCard(
+              title: store.tr('Choose your replacement', 'Replacement chuno'),
+              subtitle: store.tr(
+                'What will your attention move toward instead?',
+                'Tumhari tawajju ab kis taraf jayegi?',
+              ),
+              child: DropdownButtonFormField<String>(
+                initialValue: _replacement,
+                items: AppContent.replacementActivities
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item.en,
+                        child: Text(store.pick(item)),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) =>
+                    setState(() => _replacement = value ?? _replacement),
+              ),
             ),
-            child: DropdownButtonFormField<String>(
-              initialValue: _replacement,
-              items: AppContent.replacementActivities
-                  .map(
-                    (item) => DropdownMenuItem(
-                      value: item.en,
-                      child: Text(store.pick(item)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) =>
-                  setState(() => _replacement = value ?? _replacement),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SukoonSectionCard(
-            title: store.tr('Time remaining', 'Baqi waqt'),
-            child: Column(
-              children: [
-                Text(
-                  '$minutes:$seconds',
-                  style: Theme.of(context).textTheme.displaySmall,
-                ),
-                const SizedBox(height: 16),
-                if (!_running && !_completed)
-                  FilledButton(
-                    onPressed: _start,
-                    child: Text(
-                      store.tr('Start session', 'Session shuru karo'),
-                    ),
-                  )
-                else if (_running)
-                  OutlinedButton(
-                    onPressed: () => _finish(completed: false),
-                    child: Text(store.tr('End early', 'Jaldi khatam karo')),
-                  )
-                else
-                  FilledButton(
-                    onPressed: () => _finish(completed: true),
-                    child: Text(
-                      store.tr('Complete session', 'Session mukammal karo'),
-                    ),
+            const SizedBox(height: 16),
+            SukoonSectionCard(
+              title: store.tr('Time remaining', 'Baqi waqt'),
+              child: Column(
+                children: [
+                  Text(
+                    '$minutes:$seconds',
+                    style: Theme.of(context).textTheme.displaySmall,
                   ),
-              ],
+                  const SizedBox(height: 16),
+                  if (!_running && !_completed)
+                    FilledButton(
+                      onPressed: _start,
+                      child: Text(
+                        store.tr('Start session', 'Session shuru karo'),
+                      ),
+                    )
+                  else if (_running)
+                    OutlinedButton(
+                      onPressed: () => _finish(completed: false),
+                      child: Text(store.tr('End early', 'Jaldi khatam karo')),
+                    )
+                  else
+                    FilledButton(
+                      onPressed: () => _finish(completed: true),
+                      child: Text(
+                        store.tr('Complete session', 'Session mukammal karo'),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          SukoonSectionCard(
-            title: store.tr('Reflection', 'Reflection'),
-            child: TextField(
-              controller: _reflectionController,
-              minLines: 4,
-              maxLines: null,
-              decoration: InputDecoration(
-                labelText: store.tr(
-                  'What did the pause make possible?',
-                  'Is waqfay ne kya mumkin banaya?',
+            const SizedBox(height: 16),
+            SukoonSectionCard(
+              title: store.tr('Reflection', 'Reflection'),
+              child: TextField(
+                controller: _reflectionController,
+                minLines: 4,
+                maxLines: null,
+                decoration: InputDecoration(
+                  labelText: store.tr(
+                    'What did the pause make possible?',
+                    'Is waqfay ne kya mumkin banaya?',
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -307,36 +369,38 @@ class DetoxChallengeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(store.tr('Detox challenge', 'Detox challenge')),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          if (active != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: SukoonSectionCard(
-                title: active.name,
-                subtitle: '${active.completedDays}/${active.totalDays}',
-                child: LinearProgressIndicator(
-                  value: active.completedDays / active.totalDays,
+      body: SukoonContent(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            if (active != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: SukoonSectionCard(
+                  title: active.name,
+                  subtitle: '${active.completedDays}/${active.totalDays}',
+                  child: LinearProgressIndicator(
+                    value: active.completedDays / active.totalDays,
+                  ),
                 ),
               ),
-            ),
-          for (final challenge in AppContent.detoxChallenges)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: SukoonSectionCard(
-                title: store.pick(challenge.title),
-                subtitle: store.pick(challenge.summary),
-                trailing: FilledButton.tonal(
-                  onPressed: () => ref
-                      .read(sukoonStoreProvider)
-                      .activateChallenge(challenge),
-                  child: Text(store.tr('Start', 'Shuru')),
+            for (final challenge in AppContent.detoxChallenges)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: SukoonSectionCard(
+                  title: store.pick(challenge.title),
+                  subtitle: store.pick(challenge.summary),
+                  trailing: FilledButton.tonal(
+                    onPressed: () => ref
+                        .read(sukoonStoreProvider)
+                        .activateChallenge(challenge),
+                    child: Text(store.tr('Start', 'Shuru')),
+                  ),
+                  child: Text('${challenge.days} ${store.tr('days', 'days')}'),
                 ),
-                child: Text('${challenge.days} ${store.tr('days', 'days')}'),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -351,55 +415,62 @@ class DetoxStatsScreen extends ConsumerWidget {
     final sessions = store.completedDetoxSessions;
     return Scaffold(
       appBar: AppBar(title: Text(store.tr('Detox stats', 'Detox stats'))),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          SukoonSectionCard(
-            title: store.tr('Your pattern', 'Tumhara pattern'),
-            subtitle: store.tr('Insight, not guilt.', 'Insight, guilt nahin.'),
-            child: sessions.isEmpty
-                ? Text(
-                    store.tr(
-                      'Complete a few sessions to see trends here.',
-                      'Kuch sessions mukammal karo, phir trends yahan nazar aayenge.',
-                    ),
-                  )
-                : SizedBox(
-                    height: 180,
-                    child: BarChart(
-                      BarChartData(
-                        borderData: FlBorderData(show: false),
-                        titlesData: const FlTitlesData(
-                          topTitles: AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                          rightTitles: AxisTitles(
-                            sideTitles: SideTitles(showTitles: false),
-                          ),
-                        ),
-                        barGroups: [
-                          for (var i = 0; i < sessions.take(5).length; i++)
-                            BarChartGroupData(
-                              x: i,
-                              barRods: [
-                                BarChartRodData(
-                                  toY: sessions[i].plannedMinutes.toDouble(),
-                                  color: Theme.of(context).colorScheme.primary,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                              ],
+      body: SukoonContent(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            SukoonSectionCard(
+              title: store.tr('Your pattern', 'Tumhara pattern'),
+              subtitle: store.tr(
+                'Insight, not guilt.',
+                'Insight, guilt nahin.',
+              ),
+              child: sessions.isEmpty
+                  ? Text(
+                      store.tr(
+                        'Complete a few sessions to see trends here.',
+                        'Kuch sessions mukammal karo, phir trends yahan nazar aayenge.',
+                      ),
+                    )
+                  : SizedBox(
+                      height: 180,
+                      child: BarChart(
+                        BarChartData(
+                          borderData: FlBorderData(show: false),
+                          titlesData: const FlTitlesData(
+                            topTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
                             ),
-                        ],
+                            rightTitles: AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                          ),
+                          barGroups: [
+                            for (var i = 0; i < sessions.take(5).length; i++)
+                              BarChartGroupData(
+                                x: i,
+                                barRods: [
+                                  BarChartRodData(
+                                    toY: sessions[i].plannedMinutes.toDouble(),
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ],
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-          ),
-          const SizedBox(height: 16),
-          SukoonSectionCard(
-            title: store.tr('Compassionate note', 'Narm note'),
-            child: Text(store.correlationSummary),
-          ),
-        ],
+            ),
+            const SizedBox(height: 16),
+            SukoonSectionCard(
+              title: store.tr('Compassionate note', 'Narm note'),
+              child: Text(store.correlationSummary),
+            ),
+          ],
+        ),
       ),
     );
   }

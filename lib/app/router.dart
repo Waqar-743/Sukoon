@@ -24,16 +24,20 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       }
 
       final isOnboarding = state.matchedLocation.startsWith('/onboarding');
+      final isStart = state.matchedLocation == '/start';
       if (store.isReady &&
           !store.onboardingComplete &&
           !isOnboarding &&
+          !isStart &&
           state.matchedLocation != '/splash') {
-        return '/onboarding/profile';
+        return '/start';
       }
 
       if (store.isReady &&
           store.onboardingComplete &&
-          (state.matchedLocation == '/splash' || isOnboarding)) {
+          (state.matchedLocation == '/splash' ||
+              state.matchedLocation == '/start' ||
+              isOnboarding)) {
         return '/home';
       }
       return null;
@@ -43,6 +47,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
       ),
+      GoRoute(path: '/start', builder: (context, state) => const StartScreen()),
       GoRoute(
         path: '/onboarding/profile',
         builder: (context, state) => const ProfileOnboardingScreen(),

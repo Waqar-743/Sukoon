@@ -64,6 +64,8 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   build_runner: ^2.4.13
   isar_generator: ^3.1.0+1
+  flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.6
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -78,6 +80,25 @@ flutter:
   assets:
     - assets/lottie/breathing_orb.json
     - assets/audio/calm_chime.wav
+    - Icon.png
+    - APP-ICON.png
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: APP-ICON.png
+  adaptive_icon_background: "#FAF6F2"
+  adaptive_icon_foreground: APP-ICON.png
+  min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#FAF6F2"
+  image: Icon.png
+  android: true
+  ios: false
+  android_12:
+    color: "#FAF6F2"
+    image: Icon.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

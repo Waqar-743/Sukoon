@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:sukoon/core/content/app_content.dart';
 import 'package:sukoon/core/state/app_state.dart';
+import 'package:sukoon/core/theme/app_theme.dart';
 import 'package:sukoon/shared/widgets/common_widgets.dart';
 
 class JournalHomeScreen extends ConsumerStatefulWidget {
@@ -54,91 +55,123 @@ class _JournalHomeScreenState extends ConsumerState<JournalHomeScreen> {
         icon: const Icon(Icons.edit_note),
         label: Text(store.tr('Write', 'Likho')),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          SukoonSectionCard(
-            title: store.tr('Private by design', 'Bunyadi tor par private'),
-            subtitle: store.tr(
-              'Entries stay on your device. Biometrics are optional.',
-              'Entries tumhare device par rehti hain. Biometrics optional hain.',
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    labelText: store.tr(
-                      'Search entries',
-                      'Entries search karo',
+      body: SukoonContent(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+          children: [
+            SukoonSectionCard(
+              title: store.tr('Private by design', 'Bunyadi tor par private'),
+              subtitle: store.tr(
+                'Entries stay on your device. Biometrics are optional.',
+                'Entries tumhare device par rehti hain. Biometrics optional hain.',
+              ),
+              backgroundColor: AppTheme.primaryLight,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_outline_rounded,
+                          color: AppTheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            store.pick(AppContent.prompts.first.title),
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  onChanged: (value) => setState(() => _query = value.trim()),
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: AppContent.prompts
-                      .take(4)
-                      .map(
-                        (prompt) => ActionChip(
-                          label: Text(store.pick(prompt.title)),
-                          onPressed: () async {
-                            await ref
-                                .read(sukoonStoreProvider)
-                                .guardedPush(
-                                  context,
-                                  '/journal/editor/new?promptId=${prompt.id}',
-                                );
-                          },
-                        ),
-                      )
-                      .toList(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          if (entries.isEmpty)
-            EmptyStateCard(
-              title: store.tr('No entries yet', 'Abhi entries nahin'),
-              message: store.tr(
-                'Start with a free write or use a prompt about exams, comparison, or self-worth.',
-                'Free write se shuru karo ya exams, muqable, ya self-worth wala prompt use karo.',
-              ),
-            )
-          else
-            for (final entry in entries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search),
+                      labelText: store.tr(
+                        'Search entries',
+                        'Entries search karo',
+                      ),
+                    ),
+                    onChanged: (value) => setState(() => _query = value.trim()),
                   ),
-                  tileColor: Colors.white,
-                  title: Text(
-                    entry.title.isEmpty
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: AppContent.prompts.take(4).map((prompt) {
+                      return ActionChip(
+                        label: Text(store.pick(prompt.title)),
+                        onPressed: () async {
+                          await ref
+                              .read(sukoonStoreProvider)
+                              .guardedPush(
+                                context,
+                                '/journal/editor/new?promptId=${prompt.id}',
+                              );
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (entries.isEmpty)
+              EmptyStateCard(
+                title: store.tr('No entries yet', 'Abhi entries nahin'),
+                message: store.tr(
+                  'Start with a free write or use a prompt about exams, comparison, or self-worth.',
+                  'Free write se shuru karo ya exams, muqable, ya self-worth wala prompt use karo.',
+                ),
+              )
+            else
+              for (final entry in entries)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: SukoonSectionCard(
+                    title: entry.title.isEmpty
                         ? store.tr(
                             'Untitled reflection',
                             'Bila unwan reflection',
                           )
                         : entry.title,
+                    subtitle:
+                        '${DateFormat.yMMMd().add_jm().format(entry.updatedAt)} · ${entry.promptCategory ?? store.tr('Free write', 'Free write')}',
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    child: InkWell(
+                      onTap: () async {
+                        await ref
+                            .read(sukoonStoreProvider)
+                            .guardedPush(context, '/journal/entry/${entry.id}');
+                      },
+                      borderRadius: BorderRadius.circular(18),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(
+                          entry.body.isEmpty
+                              ? store.tr(
+                                  'Tap to open this reflection.',
+                                  'Is reflection ko kholne ke liye tap karein.',
+                                )
+                              : entry.body,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
                   ),
-                  subtitle: Text(
-                    '${DateFormat.yMMMd().add_jm().format(entry.updatedAt)} · ${entry.promptCategory ?? store.tr('Free write', 'Free write')}',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () async {
-                    await ref
-                        .read(sukoonStoreProvider)
-                        .guardedPush(context, '/journal/entry/${entry.id}');
-                  },
                 ),
-              ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -231,67 +264,69 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
             ),
           ],
         ),
-        body: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            if (_prompt != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: SukoonSectionCard(
-                  title: store.pick(_prompt!.title),
-                  subtitle: _prompt!.category,
-                  child: Text(store.pick(_prompt!.prompt)),
+        body: SukoonContent(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              if (_prompt != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: SukoonSectionCard(
+                    title: store.pick(_prompt!.title),
+                    subtitle: _prompt!.category,
+                    child: Text(store.pick(_prompt!.prompt)),
+                  ),
+                ),
+              TextField(
+                controller: _titleController,
+                decoration: InputDecoration(
+                  labelText: store.tr('Title', 'Title'),
                 ),
               ),
-            TextField(
-              controller: _titleController,
-              decoration: InputDecoration(
-                labelText: store.tr('Title', 'Title'),
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<int?>(
-              initialValue: _linkedMoodId,
-              decoration: InputDecoration(
-                labelText: store.tr(
-                  'Link mood (optional)',
-                  'Link mood (optional)',
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int?>(
+                initialValue: _linkedMoodId,
+                decoration: InputDecoration(
+                  labelText: store.tr(
+                    'Link mood (optional)',
+                    'Link mood (optional)',
+                  ),
                 ),
-              ),
-              items: [
-                DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text(store.tr('None', 'None')),
-                ),
-                ...store.moods
-                    .take(5)
-                    .map(
-                      (mood) => DropdownMenuItem<int?>(
-                        value: mood.id,
-                        child: Text(
-                          '${DateFormat.MMMd().add_jm().format(mood.createdAt)} · ${mood.score}/5',
+                items: [
+                  DropdownMenuItem<int?>(
+                    value: null,
+                    child: Text(store.tr('None', 'None')),
+                  ),
+                  ...store.moods
+                      .take(5)
+                      .map(
+                        (mood) => DropdownMenuItem<int?>(
+                          value: mood.id,
+                          child: Text(
+                            '${DateFormat.MMMd().add_jm().format(mood.createdAt)} · ${mood.score}/5',
+                          ),
                         ),
                       ),
-                    ),
-              ],
-              onChanged: (value) => setState(() => _linkedMoodId = value),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _bodyController,
-              minLines: 10,
-              maxLines: null,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                alignLabelWithHint: true,
-                labelText: store.tr('Write freely', 'Azadana likho'),
-                helperText: store.tr(
-                  'Autosaves on device as you type.',
-                  'Jab tum likhte ho to device par autosave hota rehta hai.',
+                ],
+                onChanged: (value) => setState(() => _linkedMoodId = value),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _bodyController,
+                minLines: 10,
+                maxLines: null,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  alignLabelWithHint: true,
+                  labelText: store.tr('Write freely', 'Azadana likho'),
+                  helperText: store.tr(
+                    'Autosaves on device as you type.',
+                    'Jab tum likhte ho to device par autosave hota rehta hai.',
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -326,34 +361,36 @@ class JournalEntryScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          SukoonSectionCard(
-            title: entry.title.isEmpty
-                ? store.tr('Untitled reflection', 'Bila unwan reflection')
-                : entry.title,
-            subtitle: DateFormat.yMMMMd().add_jm().format(entry.updatedAt),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (entry.promptCategory != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Chip(label: Text(entry.promptCategory!)),
-                  ),
-                if (linkedMood != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Text(
-                      '${store.tr('Linked mood', 'Linked mood')}: ${linkedMood.score}/5',
+      body: SukoonContent(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            SukoonSectionCard(
+              title: entry.title.isEmpty
+                  ? store.tr('Untitled reflection', 'Bila unwan reflection')
+                  : entry.title,
+              subtitle: DateFormat.yMMMMd().add_jm().format(entry.updatedAt),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (entry.promptCategory != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Chip(label: Text(entry.promptCategory!)),
                     ),
-                  ),
-                Text(entry.body),
-              ],
+                  if (linkedMood != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        '${store.tr('Linked mood', 'Linked mood')}: ${linkedMood.score}/5',
+                      ),
+                    ),
+                  Text(entry.body),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

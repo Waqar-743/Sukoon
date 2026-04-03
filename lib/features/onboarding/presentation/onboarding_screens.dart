@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sukoon/core/content/app_content.dart';
 import 'package:sukoon/core/state/app_state.dart';
+import 'package:sukoon/core/theme/app_theme.dart';
 import 'package:sukoon/shared/widgets/common_widgets.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -19,7 +20,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     Future<void>.delayed(const Duration(milliseconds: 900), () {
       final store = ref.read(sukoonStoreProvider);
       if (!mounted || !store.isReady) return;
-      context.go(store.onboardingComplete ? '/home' : '/onboarding/profile');
+      context.go(store.onboardingComplete ? '/home' : '/start');
     });
   }
 
@@ -27,40 +28,126 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     final store = ref.watch(sukoonStoreProvider);
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 104,
-                  height: 104,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer,
-                    shape: BoxShape.circle,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(color: AppTheme.surface),
+        child: Stack(
+          children: [
+            const _SplashAura(),
+            SafeArea(
+              child: SukoonContent(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        child: Image.asset(
+                          'Icon.png',
+                          fit: BoxFit.contain,
+                          height: 280,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Sukoon',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'سکون',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(color: AppTheme.primary),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        store.tr(
+                          'Your mind deserves peace.',
+                          'Tumhara zehen sukoon ka mustahiq hai.',
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 28),
+                      const SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(strokeWidth: 3),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.spa_rounded, size: 48),
                 ),
-                const SizedBox(height: 24),
-                Text(
-                  'Sukoon',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  store.tr(
-                    'A calmer space for mood, focus, and honest reflection.',
-                    'Mood, focus aur sachchi reflection ke liye aik pur-sukoon jagah.',
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                const CircularProgressIndicator(),
-              ],
+              ),
             ),
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class StartScreen extends ConsumerWidget {
+  const StartScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final store = ref.watch(sukoonStoreProvider);
+    return Scaffold(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(color: AppTheme.surface),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -120,
+              right: -110,
+              child: _softBlob(AppTheme.primaryLight, 320),
+            ),
+            Positioned(
+              left: -120,
+              bottom: -120,
+              child: _softBlob(AppTheme.secondaryLight, 280),
+            ),
+            SafeArea(
+              child: SukoonContent(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                  child: Column(
+                    children: [
+                      const Spacer(),
+                      Flexible(
+                        flex: 3,
+                        child: Image.asset(
+                          'Icon.png',
+                          fit: BoxFit.contain,
+                          height: 320,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        store.tr(
+                          'Find your inner peace',
+                          'Apna andarooni sukoon pao',
+                        ),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        store.tr(
+                          'A safe space for students to manage stress, track habits, and build resilience.',
+                          'Talaba ke liye aik mehfooz jagah jahan stress ko samjha ja sake aur behtar aadatein ban sakein.',
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const Spacer(),
+                      FilledButton(
+                        onPressed: () => context.go('/onboarding/profile'),
+                        child: Text(store.tr('Get started', 'Shuru karein')),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -100,21 +187,25 @@ class _ProfileOnboardingScreenState
   Widget build(BuildContext context) {
     final store = ref.watch(sukoonStoreProvider);
     return _OnboardingScaffold(
-      title: store.tr(
-        'Let us keep this simple.',
-        'Chalo isay saadah rakhte hain.',
-      ),
+      step: 1,
+      title: store.tr('What should we call you?', 'Hum aap ko kya pukarein?'),
       subtitle: store.tr(
-        'No account. No phone number. Just enough to make Sukoon feel like yours.',
-        'Na account. Na phone number. Bas itna jo Sukoon ko tumhara sa bana de.',
+        'We will never share your name with anyone.',
+        'Hum aap ka naam kisi ke saath share nahin karein ge.',
+      ),
+      hero: _OnboardingHero(
+        background: AppTheme.primaryLight,
+        child: Image.asset('Icon.png', fit: BoxFit.contain),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
             controller: _nameController,
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
               labelText: store.tr('First name', 'Pehla naam'),
+              hintText: store.tr('Your first name', 'Apna pehla naam'),
             ),
           ),
           const SizedBox(height: 16),
@@ -129,7 +220,7 @@ class _ProfileOnboardingScreenState
               labelText: store.tr('Education level', 'Taleemi marhala'),
             ),
           ),
-          const Spacer(),
+          const SizedBox(height: 24),
           FilledButton(
             onPressed: () async {
               if (_nameController.text.trim().isEmpty ||
@@ -174,13 +265,22 @@ class _TriggerOnboardingScreenState
   Widget build(BuildContext context) {
     final store = ref.watch(sukoonStoreProvider);
     return _OnboardingScaffold(
+      step: 2,
       title: store.tr(
-        'What usually weighs on you?',
-        'Aksar tum par kis cheez ka bojh hota hai?',
+        'What is weighing on you lately?',
+        'In dino kis cheez ka bojh zyada hai?',
       ),
       subtitle: store.tr(
-        'Choose the pressures you want Sukoon to notice gently.',
-        'Un dabaoon ko chuno jinhein Sukoon narmi se notice kare.',
+        'Choose as many as feel true.',
+        'Jitni cheezein sach lagti hain, unhein chun lo.',
+      ),
+      hero: _OnboardingHero(
+        background: const Color(0xFFF7E5DE),
+        child: const Icon(
+          Icons.psychology_alt_rounded,
+          size: 72,
+          color: AppTheme.primaryDark,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,7 +305,7 @@ class _TriggerOnboardingScreenState
                 ),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 24),
           FilledButton(
             onPressed: () async {
               await ref
@@ -261,50 +361,77 @@ class _NotificationOnboardingScreenState
   Widget build(BuildContext context) {
     final store = ref.watch(sukoonStoreProvider);
     return _OnboardingScaffold(
+      step: 3,
       title: store.tr(
-        'Want gentle reminders?',
-        'Kya tum narm reminders chahte ho?',
+        'Let us check in with you daily.',
+        'Rozana aap se halka sa check-in rakhein?',
       ),
       subtitle: store.tr(
-        'You can change this later. Nothing here will guilt you for resting or missing a day.',
-        'Baad mein yeh badla ja sakta hai. Yahan koi cheez tumhein aaraam ya missed day par sharminda nahin karegi.',
+        'Set two gentle reminders to pause, reflect, and log your mood.',
+        'Do narm reminders set karein taa ke aap ruk kar apna haal dekh sakein.',
+      ),
+      hero: _OnboardingHero(
+        background: AppTheme.tertiaryLight,
+        child: const Icon(
+          Icons.notifications_active_rounded,
+          size: 68,
+          color: AppTheme.tertiary,
+        ),
       ),
       child: Column(
         children: [
-          SwitchListTile.adaptive(
-            value: _enabled,
-            title: Text(store.tr('Enable reminders', 'Reminders on karo')),
-            subtitle: Text(
-              store.tr(
-                'Morning check-in and evening reflection',
-                'Morning check-in aur evening reflection',
-              ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryLight,
+              borderRadius: BorderRadius.circular(24),
             ),
-            onChanged: (value) => setState(() => _enabled = value),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        store.tr('Enable reminders', 'Reminders on karein'),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        store.tr(
+                          'Morning check-in and evening reflection',
+                          'Morning check-in aur evening reflection',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  value: _enabled,
+                  onChanged: (value) => setState(() => _enabled = value),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          ListTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            tileColor: Colors.white,
-            title: Text(store.tr('Morning check-in', 'Morning check-in')),
-            subtitle: Text(_morning.format(context)),
-            trailing: const Icon(Icons.schedule),
-            onTap: _enabled ? () => _pickTime(morning: true) : null,
+          _ReminderTile(
+            title: store.tr('Morning', 'Morning'),
+            subtitle: _morning.format(context),
+            icon: Icons.wb_sunny_rounded,
+            iconColor: const Color(0xFFF59E0B),
+            enabled: _enabled,
+            onTap: () => _pickTime(morning: true),
           ),
           const SizedBox(height: 12),
-          ListTile(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-            ),
-            tileColor: Colors.white,
-            title: Text(store.tr('Evening reflection', 'Evening reflection')),
-            subtitle: Text(_evening.format(context)),
-            trailing: const Icon(Icons.schedule_outlined),
-            onTap: _enabled ? () => _pickTime(morning: false) : null,
+          _ReminderTile(
+            title: store.tr('Evening', 'Evening'),
+            subtitle: _evening.format(context),
+            icon: Icons.mode_night_rounded,
+            iconColor: const Color(0xFF4B5563),
+            enabled: _enabled,
+            onTap: () => _pickTime(morning: false),
           ),
-          const Spacer(),
+          const SizedBox(height: 24),
           FilledButton(
             onPressed: () async {
               await ref
@@ -331,40 +458,187 @@ class _NotificationOnboardingScreenState
 
 class _OnboardingScaffold extends StatelessWidget {
   const _OnboardingScaffold({
+    required this.step,
     required this.title,
     required this.subtitle,
     required this.child,
+    required this.hero,
   });
 
+  final int step;
   final String title;
   final String subtitle;
   final Widget child;
+  final Widget hero;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(color: AppTheme.background),
+        child: SafeArea(
+          child: SukoonContent(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    children: List.generate(
+                      3,
+                      (index) => Expanded(
+                        child: Container(
+                          height: 6,
+                          margin: EdgeInsets.only(right: index == 2 ? 0 : 8),
+                          decoration: BoxDecoration(
+                            color: index < step
+                                ? AppTheme.primary
+                                : AppTheme.neutral.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  hero,
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: SukoonSectionCard(
+                      title: title,
+                      subtitle: subtitle,
+                      child: SingleChildScrollView(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 300),
+                          child: child,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OnboardingHero extends StatelessWidget {
+  const _OnboardingHero({required this.background, required this.child});
+
+  final Color background;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 190,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(36),
+      ),
+      child: Padding(padding: const EdgeInsets.all(20), child: child),
+    );
+  }
+}
+
+class _ReminderTile extends StatelessWidget {
+  const _ReminderTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.iconColor,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color iconColor;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: InkWell(
+        onTap: enabled ? onTap : null,
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+          child: Row(
             children: [
-              const SizedBox(height: 20),
-              Text(title, style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 10),
-              Text(subtitle),
-              const SizedBox(height: 24),
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: iconColor),
+              ),
+              const SizedBox(width: 14),
               Expanded(
-                child: SukoonSectionCard(
-                  title: 'Sukoon',
-                  subtitle: 'Stored on your device only',
-                  child: child,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 2),
+                    Text(subtitle),
+                  ],
                 ),
               ),
+              const Icon(Icons.schedule_rounded, color: AppTheme.primary),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class _SplashAura extends StatelessWidget {
+  const _SplashAura();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          top: -110,
+          right: -120,
+          child: _softBlob(AppTheme.primaryLight, 320),
+        ),
+        Positioned(
+          bottom: -120,
+          left: -120,
+          child: _softBlob(AppTheme.secondaryLight, 300),
+        ),
+        Positioned(
+          top: 120,
+          left: MediaQuery.sizeOf(context).width * 0.15,
+          child: _softBlob(AppTheme.tertiaryLight, 180),
+        ),
+      ],
+    );
+  }
+}
+
+Widget _softBlob(Color color, double size) {
+  return Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  );
 }

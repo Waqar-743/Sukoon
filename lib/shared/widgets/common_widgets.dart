@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:sukoon/core/theme/app_theme.dart';
 
 class SukoonShell extends StatelessWidget {
   const SukoonShell({
@@ -21,51 +22,113 @@ class SukoonShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const items = <({String label, String location, IconData icon})>[
+      (label: 'Home', location: '/home', icon: Icons.home_rounded),
+      (
+        label: 'Mood',
+        location: '/mood/checkin',
+        icon: Icons.sentiment_satisfied_alt_rounded,
+      ),
+      (label: 'Journal', location: '/journal', icon: Icons.edit_note_rounded),
+      (label: 'Goals', location: '/goals', icon: Icons.track_changes_rounded),
+      (label: 'Detox', location: '/detox', icon: Icons.timer_off_rounded),
+    ];
+
     return Scaffold(
-      body: SafeArea(child: child),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          switch (index) {
-            case 0:
-              context.go('/home');
-            case 1:
-              context.go('/mood/checkin');
-            case 2:
-              context.go('/journal');
-            case 3:
-              context.go('/goals');
-            case 4:
-              context.go('/detox');
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+      body: SafeArea(bottom: false, child: child),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: AppTheme.maxContentWidth,
+            ),
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.background.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: const Color(0xFFF1E7E0)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x12000000),
+                    blurRadius: 24,
+                    offset: Offset(0, -6),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (var i = 0; i < items.length; i++)
+                    Expanded(
+                      child: _BottomNavButton(
+                        label: items[i].label,
+                        icon: items[i].icon,
+                        selected: i == _currentIndex,
+                        onTap: () => context.go(items[i].location),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.sentiment_satisfied_outlined),
-            selectedIcon: Icon(Icons.sentiment_satisfied),
-            label: 'Mood',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Journal',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.track_changes_outlined),
-            selectedIcon: Icon(Icons.track_changes),
-            label: 'Goals',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.timer_outlined),
-            selectedIcon: Icon(Icons.timer),
-            label: 'Detox',
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavButton extends StatelessWidget {
+  const _BottomNavButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onTap,
+      style: TextButton.styleFrom(
+        foregroundColor: selected ? Colors.white : AppTheme.neutral,
+        backgroundColor: selected ? AppTheme.primary : Colors.transparent,
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 22),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class SukoonContent extends StatelessWidget {
+  const SukoonContent({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: AppTheme.maxContentWidth),
+        child: child,
       ),
     );
   }
@@ -78,19 +141,35 @@ class SukoonSectionCard extends StatelessWidget {
     this.subtitle,
     this.trailing,
     required this.child,
+    this.padding = const EdgeInsets.all(20),
+    this.backgroundColor,
   });
 
   final String title;
   final String? subtitle;
   final Widget? trailing;
   final Widget child;
+  final EdgeInsetsGeometry padding;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor ?? AppTheme.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: padding,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -109,7 +188,7 @@ class SukoonSectionCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                ...?(trailing == null ? null : [trailing!]),
+                if (trailing case final Widget trailingWidget) trailingWidget,
               ],
             ),
             const SizedBox(height: 16),
@@ -127,34 +206,43 @@ class QuickActionTile extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
+    this.backgroundColor,
+    this.foregroundColor,
   });
 
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final color = foregroundColor ?? AppTheme.primaryDark;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(22),
       child: Ink(
         decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: colorScheme.outlineVariant),
+          color: backgroundColor ?? AppTheme.primaryLight,
+          borderRadius: BorderRadius.circular(22),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: colorScheme.primary),
-              const Spacer(),
-              Text(label, style: Theme.of(context).textTheme.titleMedium),
-            ],
-          ),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const Spacer(),
+            Text(label, style: Theme.of(context).textTheme.titleMedium),
+          ],
         ),
       ),
     );
@@ -175,16 +263,12 @@ class EmptyStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return SukoonSectionCard(
       title: title,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(message, style: theme.textTheme.bodyMedium),
-          if (action != null) ...[const SizedBox(height: 16), action!],
-        ],
-      ),
+      subtitle: message,
+      child: action == null
+          ? const SizedBox.shrink()
+          : Align(alignment: Alignment.centerLeft, child: action!),
     );
   }
 }
@@ -195,25 +279,31 @@ class MetricChip extends StatelessWidget {
     required this.label,
     required this.value,
     this.icon,
+    this.color,
   });
 
   final String label;
   final String value;
   final IconData? icon;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final chipColor = color ?? AppTheme.surface;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: chipColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: 8)],
+          if (icon != null) ...[
+            Icon(icon, size: 18, color: AppTheme.primaryDark),
+            const SizedBox(width: 8),
+          ],
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
