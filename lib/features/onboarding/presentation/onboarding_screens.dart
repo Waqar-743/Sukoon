@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,14 +16,32 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
+  late final SukoonStore _store;
+  Timer? _navigationDelay;
+  bool _didNavigate = false;
+
   @override
   void initState() {
     super.initState();
-    Future<void>.delayed(const Duration(milliseconds: 900), () {
-      final store = ref.read(sukoonStoreProvider);
-      if (!mounted || !store.isReady) return;
-      context.go(store.onboardingComplete ? '/home' : '/start');
-    });
+    _store = ref.read(sukoonStoreProvider);
+    _store.addListener(_tryNavigateFromSplash);
+    _navigationDelay = Timer(
+      const Duration(milliseconds: 900),
+      _tryNavigateFromSplash,
+    );
+  }
+
+  @override
+  void dispose() {
+    _navigationDelay?.cancel();
+    _store.removeListener(_tryNavigateFromSplash);
+    super.dispose();
+  }
+
+  void _tryNavigateFromSplash() {
+    if (!mounted || _didNavigate || !_store.isReady) return;
+    _didNavigate = true;
+    context.go(_store.onboardingComplete ? '/home' : '/start');
   }
 
   @override
