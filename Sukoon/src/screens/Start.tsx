@@ -19,8 +19,8 @@ export default function Start({ onNext }: { onNext: () => void }) {
         >
           <div className="absolute inset-0 bg-primary/20 rounded-full blur-2xl animate-pulse"></div>
           <img 
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeD1nwapxbIAziYs0Tve09wdzbDV-oTc6S-RfJsv-uNLPZNUrV_9HGg0fkPyvC8Yph0a_bjxI5VSCioHxyf2OTdUXcONaUAiyGp0QKIQJGkcgUpStCxN3sA5IMpDGr8UHwtgdTbMLQ0ahYYgaqSMYrEaK2bGCj5ZIJArbuUfDOjub0x-o66u41AkfWowg9k34GduyM94AINNGNYATnR5dJenT1OalaZg3sZRchR8c9C0ySSHfZpswtWwN9Hz69aoaUaISPTz_RtQ_v" 
-            alt="Sukoon Logo" 
+            src="/Icon.png"
+            alt="Sukoon Get Started" 
             className="w-full h-full object-contain relative z-10 drop-shadow-2xl"
           />
         </motion.div>

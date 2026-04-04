@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -343,6 +344,22 @@ class _MoodInsightsScreenState extends ConsumerState<MoodInsightsScreen> {
   Future<void> _shareSnapshot(SukoonStore store) async {
     final bytes = await _controller.capture(pixelRatio: 2.0);
     if (bytes == null) return;
+    if (kIsWeb) {
+      await SharePlus.instance.share(
+        ShareParams(
+          text: 'Sukoon mood snapshot',
+          files: [
+            XFile.fromData(
+              bytes,
+              mimeType: 'image/png',
+              name: 'sukoon_mood_snapshot.png',
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/sukoon_mood_snapshot.png');
     await file.writeAsBytes(bytes);

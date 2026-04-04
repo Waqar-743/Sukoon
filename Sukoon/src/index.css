@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Noto+Nastaliq+Urdu&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Nastaliq+Urdu&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -15,21 +15,110 @@
   --color-error: #C0444A;
   --color-error-light: #F7D0D1;
   
-  --font-headline: "Public Sans", sans-serif;
-  --font-body: "Inter", sans-serif;
+  --font-headline: "Sora", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
   --font-urdu: "Noto Nastaliq Urdu", serif;
 }
 
+:root {
+  color-scheme: light;
+}
+
 body {
+  min-height: 100vh;
   background-color: var(--color-background);
+  background-image:
+    radial-gradient(120% 120% at 95% 5%, rgba(218, 119, 86, 0.22), transparent 58%),
+    radial-gradient(110% 90% at 5% 95%, rgba(107, 143, 113, 0.2), transparent 56%),
+    linear-gradient(150deg, rgba(255, 255, 255, 0.65) 0%, rgba(250, 246, 242, 0.8) 45%, rgba(244, 236, 229, 0.82) 100%);
+  background-attachment: fixed;
   color: #2A1F1A;
   font-family: var(--font-body);
   -webkit-tap-highlight-color: transparent;
 }
 
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(42, 31, 26, 0.06) 0.6px, transparent 0.6px);
+  background-size: 4px 4px;
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+  z-index: -1;
+}
+
 .urdu-text {
   font-family: var(--font-urdu);
   line-height: 2.2;
+}
+
+.glass-surface {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.74), rgba(255, 255, 255, 0.58));
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(22px);
+}
+
+.premium-card {
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.77));
+  border: 1px solid rgba(153, 69, 40, 0.08);
+  box-shadow: 0 16px 36px rgba(42, 31, 26, 0.08);
+}
+
+.premium-footer {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.63));
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 36px rgba(42, 31, 26, 0.16);
+  backdrop-filter: blur(20px);
+}
+
+.icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.78));
+  border: 1px solid rgba(153, 69, 40, 0.1);
+  box-shadow: 0 8px 18px rgba(42, 31, 26, 0.08);
+  transition: transform 240ms ease, box-shadow 240ms ease, border-color 240ms ease;
+  will-change: transform;
+}
+
+.interactive-lift {
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 260ms ease, border-color 260ms ease;
+  will-change: transform;
+}
+
+.scrollable-panel {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .interactive-lift:hover {
+    transform: translate3d(0, -4px, 0);
+    box-shadow: 0 20px 36px rgba(42, 31, 26, 0.14);
+    border-color: rgba(153, 69, 40, 0.2);
+  }
+
+  .icon-box:hover {
+    transform: translate3d(0, -2px, 0) scale(1.02);
+    box-shadow: 0 14px 24px rgba(42, 31, 26, 0.13);
+    border-color: rgba(153, 69, 40, 0.24);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .interactive-lift,
+  .icon-box {
+    transition: none;
+    transform: none;
+    will-change: auto;
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {

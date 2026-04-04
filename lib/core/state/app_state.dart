@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:sukoon/core/content/app_content.dart';
@@ -59,10 +61,21 @@ class SukoonStore extends ChangeNotifier {
     await _ensureDefaults();
     final isar = services.isar;
 
-    profile = await isar.userProfileRecords.get(1) ?? UserProfileRecord();
-    notificationPreferences =
-        await isar.notificationPreferenceRecords.get(1) ??
-        NotificationPreferenceRecord();
+    if (isar != null) {
+      profile = await isar.userProfileRecords.get(1) ?? UserProfileRecord();
+      notificationPreferences =
+          await isar.notificationPreferenceRecords.get(1) ??
+          NotificationPreferenceRecord();
+    } else {
+      profile =
+          _readRecord('cache_profile', _profileFromJson) ?? UserProfileRecord();
+      notificationPreferences =
+          _readRecord(
+            'cache_notification_preferences',
+            _notificationPreferencesFromJson,
+          ) ??
+          NotificationPreferenceRecord();
+    }
     moods = _readList('cache_moods', _moodFromJson)
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     journalEntries = _readList('cache_journal_entries', _journalFromJson)
@@ -97,6 +110,11 @@ class SukoonStore extends ChangeNotifier {
 
   Future<void> _ensureDefaults() async {
     final isar = services.isar;
+    if (isar == null) {
+      await _persistPrimaryCaches();
+      return;
+    }
+
     await isar.writeTxn(() async {
       if (await isar.userProfileRecords.get(1) == null) {
         await isar.userProfileRecords.put(UserProfileRecord());
@@ -128,6 +146,14 @@ class SukoonStore extends ChangeNotifier {
     await services.prefs.setStringList('community_posts', data);
   }
 
+  T? _readRecord<T>(String key, T Function(Map<String, dynamic>) fromJson) {
+    final raw = services.prefs.getString(key);
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    return fromJson(Map<String, dynamic>.from(jsonDecode(raw) as Map));
+  }
+
   List<T> _readList<T>(String key, T Function(Map<String, dynamic>) fromJson) {
     final raw = services.prefs.getString(key);
     if (raw == null || raw.isEmpty) {
@@ -137,6 +163,17 @@ class SukoonStore extends ChangeNotifier {
     return decoded
         .map((item) => fromJson(Map<String, dynamic>.from(item as Map)))
         .toList();
+  }
+
+  Future<void> _persistPrimaryCaches() async {
+    await services.prefs.setString(
+      'cache_profile',
+      jsonEncode(profile.toJson()),
+    );
+    await services.prefs.setString(
+      'cache_notification_preferences',
+      jsonEncode(notificationPreferences.toJson()),
+    );
   }
 
   Future<void> _persistCaches() async {
@@ -176,6 +213,43 @@ class SukoonStore extends ChangeNotifier {
       'cache_favorites',
       jsonEncode(affirmationFavorites.map((item) => item.toJson()).toList()),
     );
+  }
+
+  Future<void> _writeTxn(Future<void> Function(Isar isar) action) async {
+    final isar = services.isar;
+    if (isar == null) return;
+    await isar.writeTxn(() async {
+      await action(isar);
+    });
+  }
+
+  int _nextLocalId(Iterable<int> existingIds) {
+    final now = DateTime.now().microsecondsSinceEpoch;
+    final maxId = existingIds.fold<int>(0, (max, id) => id > max ? id : max);
+    return now > maxId ? now : maxId + 1;
+  }
+
+  UserProfileRecord _profileFromJson(Map<String, dynamic> json) {
+    return UserProfileRecord()
+      ..firstName = json['firstName'] as String? ?? ''
+      ..educationLevel = json['educationLevel'] as String? ?? ''
+      ..stressTriggers = (json['stressTriggers'] as List<dynamic>? ?? [])
+          .cast<String>()
+      ..languageCode = json['languageCode'] as String? ?? 'en'
+      ..onboardingComplete = json['onboardingComplete'] as bool? ?? false;
+  }
+
+  NotificationPreferenceRecord _notificationPreferencesFromJson(
+    Map<String, dynamic> json,
+  ) {
+    return NotificationPreferenceRecord()
+      ..remindersEnabled = json['remindersEnabled'] as bool? ?? true
+      ..detoxProgressEnabled = json['detoxProgressEnabled'] as bool? ?? true
+      ..weeklyInsightsEnabled = json['weeklyInsightsEnabled'] as bool? ?? true
+      ..morningHour = (json['morningHour'] as num?)?.toInt() ?? 8
+      ..morningMinute = (json['morningMinute'] as num?)?.toInt() ?? 0
+      ..eveningHour = (json['eveningHour'] as num?)?.toInt() ?? 20
+      ..eveningMinute = (json['eveningMinute'] as num?)?.toInt() ?? 0;
   }
 
   MoodEntryRecord _moodFromJson(Map<String, dynamic> json) {
@@ -285,9 +359,10 @@ class SukoonStore extends ChangeNotifier {
       ..languageCode = languageCode ?? profile.languageCode
       ..onboardingComplete = onboardingComplete ?? profile.onboardingComplete;
 
-    await services.isar.writeTxn(() async {
-      await services.isar.userProfileRecords.put(profile);
+    await _writeTxn((isar) async {
+      await isar.userProfileRecords.put(profile);
     });
+    await _persistPrimaryCaches();
     notifyListeners();
   }
 
@@ -312,12 +387,11 @@ class SukoonStore extends ChangeNotifier {
       ..eveningHour = eveningHour ?? notificationPreferences.eveningHour
       ..eveningMinute = eveningMinute ?? notificationPreferences.eveningMinute;
 
-    await services.isar.writeTxn(() async {
-      await services.isar.notificationPreferenceRecords.put(
-        notificationPreferences,
-      );
+    await _writeTxn((isar) async {
+      await isar.notificationPreferenceRecords.put(notificationPreferences);
     });
 
+    await _persistPrimaryCaches();
     await services.notifications.syncPreference(
       enabled: notificationPreferences.remindersEnabled,
     );
@@ -459,8 +533,12 @@ class SukoonStore extends ChangeNotifier {
       ..note = note.trim()
       ..manualScrollMinutes = manualScrollMinutes;
 
-    await services.isar.writeTxn(() async {
-      await services.isar.moodEntryRecords.put(entry);
+    if (services.isar == null) {
+      entry.id = _nextLocalId(moods.map((item) => item.id));
+    }
+
+    await _writeTxn((isar) async {
+      await isar.moodEntryRecords.put(entry);
     });
 
     moods = [entry, ...moods];
@@ -503,8 +581,12 @@ class SukoonStore extends ChangeNotifier {
       ..moodEntryId = moodEntryId
       ..locked = locked;
 
-    await services.isar.writeTxn(() async {
-      await services.isar.journalEntryRecords.put(entry);
+    if (isNew && services.isar == null) {
+      entry.id = _nextLocalId(journalEntries.map((item) => item.id));
+    }
+
+    await _writeTxn((isar) async {
+      await isar.journalEntryRecords.put(entry);
     });
 
     journalEntries.removeWhere((item) => item.id == entry.id);
@@ -519,8 +601,8 @@ class SukoonStore extends ChangeNotifier {
   }
 
   Future<void> deleteJournalEntry(int id) async {
-    await services.isar.writeTxn(() async {
-      await services.isar.journalEntryRecords.delete(id);
+    await _writeTxn((isar) async {
+      await isar.journalEntryRecords.delete(id);
     });
     journalEntries.removeWhere((item) => item.id == id);
     await _persistCaches();
@@ -543,8 +625,12 @@ class SukoonStore extends ChangeNotifier {
       ..frequency = frequency
       ..active = true;
 
-    await services.isar.writeTxn(() async {
-      await services.isar.habitRecords.put(habit);
+    if (id == null && services.isar == null) {
+      habit.id = _nextLocalId(habits.map((item) => item.id));
+    }
+
+    await _writeTxn((isar) async {
+      await isar.habitRecords.put(habit);
     });
     habits.removeWhere((item) => item.id == habit.id);
     habits = [...habits, habit];
@@ -559,23 +645,31 @@ class SukoonStore extends ChangeNotifier {
           item.habitId == habit.id && DateUtils.isSameDay(item.day, normalized),
     );
 
+    if (existing != null) {
+      await _writeTxn((isar) async {
+        await isar.habitCompletionRecords.delete(existing.id);
+      });
+    }
+
     HabitCompletionRecord? createdCompletion;
-    await services.isar.writeTxn(() async {
-      if (existing != null) {
-        await services.isar.habitCompletionRecords.delete(existing.id);
-      } else {
-        createdCompletion = HabitCompletionRecord()
-          ..habitId = habit.id
-          ..day = normalized
-          ..completedAt = DateTime.now();
-        await services.isar.habitCompletionRecords.put(createdCompletion!);
+    if (existing == null) {
+      createdCompletion = HabitCompletionRecord()
+        ..habitId = habit.id
+        ..day = normalized
+        ..completedAt = DateTime.now();
+      if (services.isar == null) {
+        createdCompletion.id = _nextLocalId(completions.map((item) => item.id));
       }
-    });
+      final completion = createdCompletion;
+      await _writeTxn((isar) async {
+        await isar.habitCompletionRecords.put(completion);
+      });
+    }
 
     if (existing != null) {
       completions.removeWhere((item) => item.id == existing.id);
     } else if (createdCompletion != null) {
-      completions = [createdCompletion!, ...completions];
+      completions = [createdCompletion, ...completions];
       await _awardPoints('Habit completed', 6);
       await _maybeUnlockBadge('habit_five', completions.length >= 5);
     }
@@ -609,8 +703,12 @@ class SukoonStore extends ChangeNotifier {
       ..status = 'active'
       ..replacementActivity = replacementActivity;
 
-    await services.isar.writeTxn(() async {
-      await services.isar.detoxSessionRecords.put(session);
+    if (services.isar == null) {
+      session.id = _nextLocalId(detoxSessions.map((item) => item.id));
+    }
+
+    await _writeTxn((isar) async {
+      await isar.detoxSessionRecords.put(session);
     });
     detoxSessions = [session, ...detoxSessions];
     await _persistCaches();
@@ -631,8 +729,8 @@ class SukoonStore extends ChangeNotifier {
       ..status = completed ? 'completed' : 'ended_early'
       ..reflectionNote = reflectionNote.trim();
 
-    await services.isar.writeTxn(() async {
-      await services.isar.detoxSessionRecords.put(session);
+    await _writeTxn((isar) async {
+      await isar.detoxSessionRecords.put(session);
     });
 
     if (completed) {
@@ -656,21 +754,27 @@ class SukoonStore extends ChangeNotifier {
 
   Future<void> activateChallenge(DetoxChallengeTemplate template) async {
     final existing = detoxChallenges.firstWhereOrNull((item) => item.active);
-    late DetoxChallengeRecord record;
-    await services.isar.writeTxn(() async {
-      if (existing != null) {
-        existing.active = false;
-        await services.isar.detoxChallengeRecords.put(existing);
-      }
-      record = DetoxChallengeRecord()
-        ..templateId = template.id
-        ..name = template.title.en
-        ..totalDays = template.days
-        ..completedDays = 0
-        ..active = true
-        ..startedAt = DateTime.now();
-      await services.isar.detoxChallengeRecords.put(record);
+    if (existing != null) {
+      existing.active = false;
+      await _writeTxn((isar) async {
+        await isar.detoxChallengeRecords.put(existing);
+      });
+    }
+
+    final record = DetoxChallengeRecord()
+      ..templateId = template.id
+      ..name = template.title.en
+      ..totalDays = template.days
+      ..completedDays = 0
+      ..active = true
+      ..startedAt = DateTime.now();
+    if (services.isar == null) {
+      record.id = _nextLocalId(detoxChallenges.map((item) => item.id));
+    }
+    await _writeTxn((isar) async {
+      await isar.detoxChallengeRecords.put(record);
     });
+
     if (existing != null) {
       detoxChallenges.removeWhere((item) => item.id == existing.id);
       detoxChallenges = [existing, ...detoxChallenges];
@@ -703,8 +807,8 @@ class SukoonStore extends ChangeNotifier {
       await _awardPoints('Completed challenge', 20);
     }
 
-    await services.isar.writeTxn(() async {
-      await services.isar.detoxChallengeRecords.put(active);
+    await _writeTxn((isar) async {
+      await isar.detoxChallengeRecords.put(active);
     });
   }
 
@@ -712,21 +816,30 @@ class SukoonStore extends ChangeNotifier {
     final existing = affirmationFavorites.firstWhereOrNull(
       (item) => item.affirmationId == affirmationId,
     );
+    if (existing != null) {
+      await _writeTxn((isar) async {
+        await isar.affirmationFavoriteRecords.delete(existing.id);
+      });
+    }
+
     AffirmationFavoriteRecord? favorite;
-    await services.isar.writeTxn(() async {
-      if (existing != null) {
-        await services.isar.affirmationFavoriteRecords.delete(existing.id);
-      } else {
-        favorite = AffirmationFavoriteRecord()
-          ..affirmationId = affirmationId
-          ..createdAt = DateTime.now();
-        await services.isar.affirmationFavoriteRecords.put(favorite!);
+    if (existing == null) {
+      favorite = AffirmationFavoriteRecord()
+        ..affirmationId = affirmationId
+        ..createdAt = DateTime.now();
+      if (services.isar == null) {
+        favorite.id = _nextLocalId(affirmationFavorites.map((item) => item.id));
       }
-    });
+      final createdFavorite = favorite;
+      await _writeTxn((isar) async {
+        await isar.affirmationFavoriteRecords.put(createdFavorite);
+      });
+    }
+
     if (existing != null) {
       affirmationFavorites.removeWhere((item) => item.id == existing.id);
     } else if (favorite != null) {
-      affirmationFavorites = [favorite!, ...affirmationFavorites];
+      affirmationFavorites = [favorite, ...affirmationFavorites];
     }
     await _persistCaches();
     notifyListeners();
@@ -742,7 +855,7 @@ class SukoonStore extends ChangeNotifier {
 
   Future<bool> checkCommunityConnectivity() => services.connectivity.isOnline();
 
-  Future<String> exportData() async {
+  Future<XFile> exportData() async {
     final payload = <String, dynamic>{
       'exportedAt': DateTime.now().toIso8601String(),
       'profile': profile.toJson(),
@@ -757,24 +870,31 @@ class SukoonStore extends ChangeNotifier {
       'badges': badgeUnlocks.map((item) => item.toJson()).toList(),
     };
 
+    final json = const JsonEncoder.withIndent('  ').convert(payload);
+    if (kIsWeb) {
+      return XFile.fromData(
+        Uint8List.fromList(utf8.encode(json)),
+        mimeType: 'application/json',
+        name: 'sukoon_export.json',
+      );
+    }
+
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/sukoon_export.json');
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(payload),
-    );
-    return file.path;
+    await file.writeAsString(json);
+    return XFile(file.path);
   }
 
   Future<void> shareExport() async {
-    final path = await exportData();
+    final file = await exportData();
     await SharePlus.instance.share(
-      ShareParams(text: 'Sukoon local data export', files: [XFile(path)]),
+      ShareParams(text: 'Sukoon local data export', files: [file]),
     );
   }
 
   Future<void> clearAllData() async {
-    await services.isar.writeTxn(() async {
-      await services.isar.clear();
+    await _writeTxn((isar) async {
+      await isar.clear();
     });
     moods = [];
     journalEntries = [];
@@ -787,6 +907,8 @@ class SukoonStore extends ChangeNotifier {
     affirmationFavorites = [];
     communityPosts = [];
     for (final key in [
+      'cache_profile',
+      'cache_notification_preferences',
       'community_posts',
       'biometricEnabled',
       'cache_moods',
@@ -842,8 +964,11 @@ class SukoonStore extends ChangeNotifier {
       ..createdAt = DateTime.now()
       ..reason = reason
       ..points = points;
-    await services.isar.writeTxn(() async {
-      await services.isar.pointsLedgerRecords.put(record);
+    if (services.isar == null) {
+      record.id = _nextLocalId(pointsLedger.map((item) => item.id));
+    }
+    await _writeTxn((isar) async {
+      await isar.pointsLedgerRecords.put(record);
     });
     pointsLedger = [record, ...pointsLedger];
     await _persistCaches();
@@ -860,8 +985,11 @@ class SukoonStore extends ChangeNotifier {
       ..title = spec.title.en
       ..description = spec.description.en
       ..unlockedAt = DateTime.now();
-    await services.isar.writeTxn(() async {
-      await services.isar.badgeUnlockRecords.put(record);
+    if (services.isar == null) {
+      record.id = _nextLocalId(badgeUnlocks.map((item) => item.id));
+    }
+    await _writeTxn((isar) async {
+      await isar.badgeUnlockRecords.put(record);
     });
     badgeUnlocks = [record, ...badgeUnlocks];
     await _persistCaches();

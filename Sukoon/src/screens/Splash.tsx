@@ -3,17 +3,20 @@ import { motion } from 'motion/react';
 export default function Splash() {
   return (
     <main className="flex-1 flex flex-col items-center justify-center relative p-8 bg-surface overflow-hidden">
-      {/* Background decorative elements */}
-      <motion.div 
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.15 }}
-        transition={{ duration: 1.5, ease: "easeOut" }}
-        className="absolute inset-0 flex items-center justify-center pointer-events-none"
-      >
-        <div className="w-[250px] h-[250px] rounded-full bg-primary blur-3xl"></div>
-      </motion.div>
-      
       <div className="relative z-10 flex flex-col items-center text-center">
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8 }}
+          className="w-28 h-28 mb-5"
+        >
+          <img
+            src="/APP-ICON.png"
+            alt="Sukoon Splash"
+            className="w-full h-full object-contain"
+          />
+        </motion.div>
+
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

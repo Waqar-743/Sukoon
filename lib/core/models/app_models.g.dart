@@ -15,7 +15,7 @@ extension GetUserProfileRecordCollection on Isar {
 
 const UserProfileRecordSchema = CollectionSchema(
   name: r'UserProfileRecord',
-  id: -3596844978006719671,
+  id: -3596844978006719488,
   properties: {
     r'educationLevel': PropertySchema(
       id: 0,
@@ -2320,7 +2320,7 @@ extension GetMoodEntryRecordCollection on Isar {
 
 const MoodEntryRecordSchema = CollectionSchema(
   name: r'MoodEntryRecord',
-  id: 1265543824057994461,
+  id: 1265543824057994496,
   properties: {
     r'createdAt': PropertySchema(
       id: 0,
@@ -3317,7 +3317,7 @@ extension GetJournalEntryRecordCollection on Isar {
 
 const JournalEntryRecordSchema = CollectionSchema(
   name: r'JournalEntryRecord',
-  id: 8487060306741730483,
+  id: 8487060306741730304,
   properties: {
     r'body': PropertySchema(id: 0, name: r'body', type: IsarType.string),
     r'createdAt': PropertySchema(
@@ -4778,7 +4778,7 @@ extension GetHabitRecordCollection on Isar {
 
 const HabitRecordSchema = CollectionSchema(
   name: r'HabitRecord',
-  id: -8253752743009167416,
+  id: -8253752743009167360,
   properties: {
     r'active': PropertySchema(id: 0, name: r'active', type: IsarType.bool),
     r'category': PropertySchema(
@@ -5764,7 +5764,7 @@ extension GetHabitCompletionRecordCollection on Isar {
 
 const HabitCompletionRecordSchema = CollectionSchema(
   name: r'HabitCompletionRecord',
-  id: -8299100987193896903,
+  id: -8299100987193896960,
   properties: {
     r'completedAt': PropertySchema(
       id: 0,
@@ -6423,7 +6423,7 @@ extension GetDetoxSessionRecordCollection on Isar {
 
 const DetoxSessionRecordSchema = CollectionSchema(
   name: r'DetoxSessionRecord',
-  id: -6001073010105153569,
+  id: -6001073010105153536,
   properties: {
     r'endedAt': PropertySchema(
       id: 0,
@@ -7790,7 +7790,7 @@ extension GetDetoxChallengeRecordCollection on Isar {
 
 const DetoxChallengeRecordSchema = CollectionSchema(
   name: r'DetoxChallengeRecord',
-  id: 2527373554133336213,
+  id: 2527373554133336064,
   properties: {
     r'active': PropertySchema(id: 0, name: r'active', type: IsarType.bool),
     r'completedDays': PropertySchema(
@@ -8973,7 +8973,7 @@ extension GetPointsLedgerRecordCollection on Isar {
 
 const PointsLedgerRecordSchema = CollectionSchema(
   name: r'PointsLedgerRecord',
-  id: 2141088611863775037,
+  id: 2141088611863774976,
   properties: {
     r'createdAt': PropertySchema(
       id: 0,
@@ -9627,7 +9627,7 @@ extension GetBadgeUnlockRecordCollection on Isar {
 
 const BadgeUnlockRecordSchema = CollectionSchema(
   name: r'BadgeUnlockRecord',
-  id: -4660795246300731677,
+  id: -4660795246300731392,
   properties: {
     r'badgeId': PropertySchema(id: 0, name: r'badgeId', type: IsarType.string),
     r'description': PropertySchema(
@@ -10561,7 +10561,7 @@ extension GetAffirmationFavoriteRecordCollection on Isar {
 
 const AffirmationFavoriteRecordSchema = CollectionSchema(
   name: r'AffirmationFavoriteRecord',
-  id: -3097453040667552640,
+  id: -3097453040667552768,
   properties: {
     r'affirmationId': PropertySchema(
       id: 0,

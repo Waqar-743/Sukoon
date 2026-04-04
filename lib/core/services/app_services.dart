@@ -22,7 +22,7 @@ class AppServices {
     required this.connectivity,
   });
 
-  final Isar isar;
+  final Isar? isar;
   final SharedPreferences prefs;
   final NotificationService notifications;
   final PrivacyService privacy;
@@ -31,30 +31,12 @@ class AppServices {
   final ConnectivityService connectivity;
 
   static Future<AppServices> bootstrap() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final isar = await Isar.open(
-      [
-        UserProfileRecordSchema,
-        NotificationPreferenceRecordSchema,
-        MoodEntryRecordSchema,
-        JournalEntryRecordSchema,
-        HabitRecordSchema,
-        HabitCompletionRecordSchema,
-        DetoxSessionRecordSchema,
-        DetoxChallengeRecordSchema,
-        PointsLedgerRecordSchema,
-        BadgeUnlockRecordSchema,
-        AffirmationFavoriteRecordSchema,
-      ],
-      directory: directory.path,
-      inspector: false,
-    );
-
+    final isar = kIsWeb ? null : await _openIsar();
     final prefs = await SharedPreferences.getInstance();
     final notifications = NotificationService();
-    await notifications.initialize();
     final audio = AudioService();
-    await audio.initialize();
+    unawaited(notifications.initialize());
+    unawaited(audio.initialize());
 
     return AppServices(
       isar: isar,
@@ -62,9 +44,44 @@ class AppServices {
       notifications: notifications,
       privacy: PrivacyService(),
       audio: audio,
-      packageInfo: await PackageInfo.fromPlatform(),
+      packageInfo: await _loadPackageInfo(),
       connectivity: ConnectivityService(),
     );
+  }
+
+  static Future<PackageInfo> _loadPackageInfo() async {
+    try {
+      return await PackageInfo.fromPlatform().timeout(
+        const Duration(seconds: 3),
+      );
+    } catch (_) {
+      return PackageInfo(
+        appName: 'Sukoon',
+        packageName: 'sukoon',
+        version: '1.0.0',
+        buildNumber: '1',
+        buildSignature: '',
+      );
+    }
+  }
+
+  static Future<Isar> _openIsar() async {
+    final schemas = [
+      UserProfileRecordSchema,
+      NotificationPreferenceRecordSchema,
+      MoodEntryRecordSchema,
+      JournalEntryRecordSchema,
+      HabitRecordSchema,
+      HabitCompletionRecordSchema,
+      DetoxSessionRecordSchema,
+      DetoxChallengeRecordSchema,
+      PointsLedgerRecordSchema,
+      BadgeUnlockRecordSchema,
+      AffirmationFavoriteRecordSchema,
+    ];
+
+    final directory = await getApplicationDocumentsDirectory();
+    return Isar.open(schemas, directory: directory.path, inspector: false);
   }
 }
 
@@ -73,6 +90,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   Future<void> initialize() async {
+    if (kIsWeb) return;
     try {
       const settings = InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -83,6 +101,7 @@ class NotificationService {
   }
 
   Future<void> syncPreference({required bool enabled}) async {
+    if (kIsWeb) return;
     try {
       if (!enabled) {
         await _plugin.cancelAll();
@@ -137,6 +156,10 @@ class AudioService {
   bool _ready = false;
 
   Future<void> initialize() async {
+    if (kIsWeb) {
+      _ready = false;
+      return;
+    }
     try {
       await _player.setAsset('assets/audio/calm_chime.wav');
       _ready = true;

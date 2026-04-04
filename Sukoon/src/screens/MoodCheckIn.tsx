@@ -47,7 +47,7 @@ export default function MoodCheckIn({ onNavigate }: { onNavigate: (s: Screen) =>
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-background pb-32 overflow-y-auto">
+    <div className="scrollable-panel flex-1 h-full min-h-0 flex flex-col bg-background pb-32">
       <header className="sticky top-0 w-full bg-background/80 backdrop-blur-md flex items-center px-4 h-16 border-b border-primary/10 z-50">
         <div className="flex items-center gap-4">
           <button onClick={() => onNavigate('home')} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-primary/10 transition-colors">

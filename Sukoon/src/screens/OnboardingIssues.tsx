@@ -30,7 +30,7 @@ export default function OnboardingIssues({ onNext, onSkip, onBack }: { onNext: (
         </button>
       </header>
 
-      <main className="flex-1 px-6 pt-8 pb-32 flex flex-col items-center overflow-y-auto">
+      <main className="scrollable-panel flex-1 h-full min-h-0 px-6 pt-8 pb-32 flex flex-col items-center">
         <div className="w-full flex flex-col items-center justify-center gap-1 mb-10">
           <div className="w-32 h-4 rounded-full bg-[#FBF0EB]"></div>
           <div className="w-40 h-4 rounded-full bg-[#F7E5DE]"></div>

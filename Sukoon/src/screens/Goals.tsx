@@ -1,5 +1,5 @@
 import { Bell, Wind, Smartphone, PenLine, Plus, CheckCircle2, Circle, Leaf, X, Edit2, Trash2, Clock, ChevronDown, ChevronUp, Flame, BarChart2, Volume2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import BottomNav from '../components/BottomNav';
 import { Screen } from '../App';
 
@@ -10,15 +10,118 @@ type Habit = {
   title: string;
   description?: string;
   createdAt: string;
-  streak: number;
-  completedToday: boolean;
   reminderTime?: string;
   reminderSound?: string;
-  stats?: {
-    weekly: number;
-    monthly: number;
-  };
   icon: IconType;
+  completionDates: string[];
+};
+
+const HABITS_STORAGE_KEY = 'sukoon_habits_v2';
+const iconTypes: IconType[] = ['Wind', 'Smartphone', 'PenLine', 'Leaf'];
+
+const toDayKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const dayKeyAtOffset = (offset: number, reference = new Date()) => {
+  const date = new Date(reference);
+  date.setHours(0, 0, 0, 0);
+  date.setDate(date.getDate() - offset);
+  return toDayKey(date);
+};
+
+const uniqueDateKeys = (dates: string[]) => {
+  return Array.from(new Set(dates)).sort();
+};
+
+const isIconType = (value: unknown): value is IconType => {
+  return typeof value === 'string' && iconTypes.includes(value as IconType);
+};
+
+const countCompletionsInWindow = (completionDates: string[], days: number) => {
+  const completionSet = new Set(completionDates);
+  let count = 0;
+  for (let offset = 0; offset < days; offset += 1) {
+    if (completionSet.has(dayKeyAtOffset(offset))) {
+      count += 1;
+    }
+  }
+  return count;
+};
+
+const completionRate = (completionDates: string[], days: number) => {
+  if (days <= 0) return 0;
+  return Math.round((countCompletionsInWindow(completionDates, days) / days) * 100);
+};
+
+const currentStreak = (completionDates: string[]) => {
+  const completionSet = new Set(completionDates);
+  let streak = 0;
+  for (let offset = 0; ; offset += 1) {
+    if (!completionSet.has(dayKeyAtOffset(offset))) {
+      break;
+    }
+    streak += 1;
+  }
+  return streak;
+};
+
+const normalizeHabit = (raw: unknown): Habit | null => {
+  if (!raw || typeof raw !== 'object') return null;
+
+  const candidate = raw as {
+    id?: unknown;
+    title?: unknown;
+    description?: unknown;
+    createdAt?: unknown;
+    reminderTime?: unknown;
+    reminderSound?: unknown;
+    icon?: unknown;
+    completionDates?: unknown;
+    completedToday?: unknown;
+  };
+
+  if (typeof candidate.title !== 'string' || !candidate.title.trim()) {
+    return null;
+  }
+
+  const completionDates = Array.isArray(candidate.completionDates)
+    ? candidate.completionDates.filter((value): value is string => {
+        return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+      })
+    : [];
+
+  if (completionDates.length === 0 && candidate.completedToday === true) {
+    completionDates.push(toDayKey());
+  }
+
+  return {
+    id: typeof candidate.id === 'string' ? candidate.id : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    title: candidate.title.trim(),
+    description: typeof candidate.description === 'string' ? candidate.description : '',
+    createdAt: typeof candidate.createdAt === 'string' ? candidate.createdAt : new Date().toISOString(),
+    reminderTime: typeof candidate.reminderTime === 'string' ? candidate.reminderTime : '',
+    reminderSound: typeof candidate.reminderSound === 'string' ? candidate.reminderSound : 'Default',
+    icon: isIconType(candidate.icon) ? candidate.icon : 'Leaf',
+    completionDates: uniqueDateKeys(completionDates),
+  };
+};
+
+const loadHabits = (): Habit[] => {
+  try {
+    const raw = window.localStorage.getItem(HABITS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map(normalizeHabit)
+      .filter((habit): habit is Habit => habit !== null);
+  } catch {
+    return [];
+  }
 };
 
 const IconMap = {
@@ -37,12 +140,9 @@ const getNextMilestone = (streak: number) => {
   return Math.ceil((streak + 1) / 100) * 100;
 };
 
-export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void }) {
-  const [habits, setHabits] = useState<Habit[]>([
-    { id: '1', title: 'Deep Breathing', description: 'Take 10 deep breaths to center yourself and reduce stress.', createdAt: new Date(Date.now() - 86400000 * 56).toISOString(), streak: 56, completedToday: true, icon: 'Wind', reminderTime: '08:00', reminderSound: 'Zen Bell', stats: { weekly: 100, monthly: 95 } },
-    { id: '2', title: 'No Social Media before 10 AM', description: 'Keep mornings distraction-free to improve focus.', createdAt: new Date(Date.now() - 86400000 * 12).toISOString(), streak: 12, completedToday: false, icon: 'Smartphone', stats: { weekly: 85, monthly: 70 } },
-    { id: '3', title: 'Gratitude Journal', description: 'Write down 3 things you are grateful for today.', createdAt: new Date(Date.now() - 86400000 * 4).toISOString(), streak: 4, completedToday: false, icon: 'PenLine', reminderTime: '21:00', reminderSound: 'Soft Chime', stats: { weekly: 60, monthly: 60 } },
-  ]);
+export default function Goals({ onNavigate, userName }: { onNavigate: (s: Screen) => void, userName: string }) {
+  const displayName = userName.trim() || 'friend';
+  const [habits, setHabits] = useState<Habit[]>(() => loadHabits());
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null);
@@ -57,8 +157,25 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
   const [newIcon, setNewIcon] = useState<IconType>('Leaf');
 
   const soundOptions = ['Default', 'Zen Bell', 'Soft Chime', 'Nature', 'None'];
+  const todayKey = toDayKey();
 
-  const completedCount = habits.filter(h => h.completedToday).length;
+  useEffect(() => {
+    window.localStorage.setItem(HABITS_STORAGE_KEY, JSON.stringify(habits));
+  }, [habits]);
+
+  const completedCount = useMemo(() => {
+    return habits.reduce((count, habit) => {
+      return count + (habit.completionDates.includes(todayKey) ? 1 : 0);
+    }, 0);
+  }, [habits, todayKey]);
+
+  const getHabitStats = (habit: Habit) => {
+    const completedToday = habit.completionDates.includes(todayKey);
+    const streak = currentStreak(habit.completionDates);
+    const weekly = completionRate(habit.completionDates, 7);
+    const monthly = completionRate(habit.completionDates, 30);
+    return { completedToday, streak, weekly, monthly };
+  };
 
   const openAddModal = () => {
     setEditingHabit(null);
@@ -82,21 +199,28 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
 
   const saveHabit = () => {
     if (!newTitle.trim()) return;
-    
+
     if (editingHabit) {
-      setHabits(habits.map(h => h.id === editingHabit.id ? { ...h, title: newTitle, description: newDescription, reminderTime: newReminder, reminderSound: newReminderSound, icon: newIcon } : h));
+      setHabits(habits.map(h => h.id === editingHabit.id
+        ? {
+            ...h,
+            title: newTitle.trim(),
+            description: newDescription.trim(),
+            reminderTime: newReminder,
+            reminderSound: newReminderSound,
+            icon: newIcon,
+          }
+        : h));
     } else {
       setHabits([...habits, {
         id: Date.now().toString(),
-        title: newTitle,
-        description: newDescription,
+        title: newTitle.trim(),
+        description: newDescription.trim(),
         createdAt: new Date().toISOString(),
-        streak: 0,
-        completedToday: false,
         reminderTime: newReminder,
         reminderSound: newReminderSound,
-        stats: { weekly: 0, monthly: 0 },
-        icon: newIcon
+        icon: newIcon,
+        completionDates: [],
       }]);
     }
     setIsModalOpen(false);
@@ -115,14 +239,19 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
     const habit = habits.find(h => h.id === id);
     if (!habit) return;
 
-    if (!habit.completedToday) {
+    const currentlyCompletedToday = habit.completionDates.includes(todayKey);
+
+    if (!currentlyCompletedToday) {
+      const nextCompletionDates = uniqueDateKeys([...habit.completionDates, todayKey]);
+      const nextStreak = currentStreak(nextCompletionDates);
+
       setHabits(habits.map(h => {
         if (h.id === id) {
-          return { ...h, completedToday: true, streak: h.streak + 1 };
+          return { ...h, completionDates: nextCompletionDates };
         }
         return h;
       }));
-      showToast(`Awesome! ${habit.title} streak extended to ${habit.streak + 1} days! 🔥`);
+      showToast(`Awesome! ${habit.title} streak extended to ${nextStreak} days.`);
     } else {
       setUncompleteConfirmId(id);
     }
@@ -132,7 +261,10 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
     if (!uncompleteConfirmId) return;
     setHabits(habits.map(h => {
       if (h.id === uncompleteConfirmId) {
-        return { ...h, completedToday: false, streak: Math.max(0, h.streak - 1) };
+        return {
+          ...h,
+          completionDates: h.completionDates.filter(date => date !== todayKey),
+        };
       }
       return h;
     }));
@@ -144,10 +276,10 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-background pb-24 overflow-y-auto relative">
+    <div className="scrollable-panel flex-1 h-full min-h-0 flex flex-col bg-background pb-24 relative">
       <header className="flex justify-between items-center px-4 h-16 w-full bg-surface border-b border-neutral/10 sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-neutral/10">
+          <div className="icon-box w-9 h-9 rounded-full overflow-hidden border-primary/20">
             <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAO67wh2XWqz45sDVIO0jdkQMpepob5-jRv7S6J_SYAvgAtwvLPCkJtB5rzI60FDb_ahhMnsEHx6ZgAn_22U3mWvs7whkfjQ16prtjlZSfJVBTDIQ2BZsORXT_34uP_y_xR5p6CEJ0AfupLRUY9LI9e5Pyav776I6b3Sr-C3jjwYge2v8tET24VLDm1WfICm_oV1c60Bkj9vGNE-0bhYDpmCkwWp3sKHJKPA7Ik0jOdsvLDlB49UXK0v04plcQS4TivrIaCxSrT1Z8i" alt="Profile" />
           </div>
           <h1 className="text-2xl font-bold text-primary font-headline">Sukoon</h1>
@@ -158,7 +290,7 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-8 w-full">
-        <section className="bg-surface rounded-xl p-8 flex flex-col items-center shadow-sm border border-neutral/10">
+        <section className="premium-card interactive-lift rounded-xl p-8 flex flex-col items-center">
           <div className="relative flex items-center justify-center w-[180px] h-[180px]">
             <svg className="w-full h-full transform -rotate-90">
               <circle cx="90" cy="90" r="80" fill="transparent" stroke="#F1E9E2" strokeWidth="12" />
@@ -170,7 +302,7 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
             </div>
           </div>
           <div className="mt-8 text-center space-y-2">
-            <p className="text-[#2A1F1A] italic text-lg px-4">"You're building a beautiful consistency, Zayaan."</p>
+            <p className="text-[#2A1F1A] italic text-lg px-4">{`"You're building a beautiful consistency, ${displayName}."`}</p>
             <p className="urdu-text text-tertiary text-sm leading-loose pt-2">سکون پانے کے لیے استقامت ضروری ہے</p>
           </div>
 
@@ -199,34 +331,35 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
           </div>
           <div className="grid gap-4">
             {habits.map(habit => {
+              const stats = getHabitStats(habit);
               const Icon = IconMap[habit.icon];
               const isExpanded = expandedHabitId === habit.id;
-              const nextMilestone = getNextMilestone(habit.streak);
-              const progressPercent = Math.min((habit.streak / nextMilestone) * 100, 100);
+              const nextMilestone = getNextMilestone(stats.streak);
+              const progressPercent = Math.min((stats.streak / nextMilestone) * 100, 100);
 
               return (
-                <div key={habit.id} className="bg-surface rounded-xl shadow-sm border border-neutral/10 relative group overflow-hidden">
+                <div key={habit.id} className="premium-card interactive-lift rounded-xl relative group overflow-hidden">
                   <div className="p-4 flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => toggleExpand(habit.id)}>
-                        <button onClick={(e) => { e.stopPropagation(); toggleHabit(habit.id); }} className="relative w-12 h-12 flex items-center justify-center shrink-0 active:scale-90 transition-transform">
+                        <button onClick={(e) => { e.stopPropagation(); toggleHabit(habit.id); }} className="icon-box relative w-12 h-12 flex items-center justify-center shrink-0 active:scale-90 transition-transform">
                           <svg className="absolute w-full h-full transform -rotate-90">
                             <circle cx="24" cy="24" r="21" fill="transparent" stroke="#F1E9E2" strokeWidth="4" />
-                            {habit.completedToday && (
+                            {stats.completedToday && (
                               <circle cx="24" cy="24" r="21" fill="transparent" stroke="#6B8F71" strokeWidth="4" strokeDasharray="131.9" strokeDashoffset="0" strokeLinecap="round" className="transition-all duration-300" />
                             )}
                           </svg>
-                          <Icon className={habit.completedToday ? "text-secondary w-5 h-5" : "text-neutral/50 w-5 h-5"} />
+                          <Icon className={stats.completedToday ? "text-secondary w-5 h-5" : "text-neutral/50 w-5 h-5"} />
                         </button>
                         <div className="flex-1 pr-2">
                           <div className="flex items-center gap-2">
-                            <h3 className={`font-bold ${habit.completedToday ? 'text-[#2A1F1A]' : 'text-neutral'}`}>{habit.title}</h3>
+                            <h3 className={`font-bold ${stats.completedToday ? 'text-[#2A1F1A]' : 'text-neutral'}`}>{habit.title}</h3>
                             {isExpanded ? <ChevronUp className="w-4 h-4 text-neutral/40" /> : <ChevronDown className="w-4 h-4 text-neutral/40" />}
                           </div>
                           <div className="flex items-center gap-2 mt-1.5">
-                            <div className={`flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md ${habit.streak > 0 ? 'bg-orange-100 text-orange-600' : 'bg-neutral/10 text-neutral/60'}`}>
+                            <div className={`flex items-center gap-1 text-[11px] font-bold px-1.5 py-0.5 rounded-md ${stats.streak > 0 ? 'bg-orange-100 text-orange-600' : 'bg-neutral/10 text-neutral/60'}`}>
                               <Flame className="w-3 h-3" />
-                              {habit.streak} Day{habit.streak !== 1 ? 's' : ''}
+                              {stats.streak} Day{stats.streak !== 1 ? 's' : ''}
                             </div>
                             {habit.reminderTime && (
                               <div className="flex items-center gap-1 text-[11px] text-primary/80 bg-primary-light px-1.5 py-0.5 rounded-md">
@@ -238,14 +371,14 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
                         </div>
                       </div>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => openEditModal(habit)} className="p-2 text-neutral/40 hover:text-primary transition-colors">
+                        <button onClick={() => openEditModal(habit)} className="icon-box w-9 h-9 p-2 text-neutral/40 hover:text-primary transition-colors">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => deleteHabit(habit.id)} className="p-2 text-neutral/40 hover:text-error transition-colors">
+                        <button onClick={() => deleteHabit(habit.id)} className="icon-box w-9 h-9 p-2 text-neutral/40 hover:text-error transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
-                        <button onClick={(e) => { e.stopPropagation(); toggleHabit(habit.id); }} className="ml-1 active:scale-90 transition-transform">
-                          {habit.completedToday ? (
+                        <button onClick={(e) => { e.stopPropagation(); toggleHabit(habit.id); }} className="icon-box w-9 h-9 ml-1 active:scale-90 transition-transform">
+                          {stats.completedToday ? (
                             <CheckCircle2 className="text-secondary w-6 h-6" />
                           ) : (
                             <Circle className="text-neutral/30 w-6 h-6" />
@@ -278,18 +411,18 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
                           <span className="text-[10px] text-neutral/50 uppercase tracking-wider font-bold block mb-1.5">7-Day Completion</span>
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-1.5 bg-neutral/10 rounded-full overflow-hidden">
-                              <div className="h-full bg-primary" style={{ width: `${habit.stats?.weekly || 0}%` }}></div>
+                              <div className="h-full bg-primary" style={{ width: `${stats.weekly}%` }}></div>
                             </div>
-                            <span className="text-xs font-bold text-neutral">{habit.stats?.weekly || 0}%</span>
+                            <span className="text-xs font-bold text-neutral">{stats.weekly}%</span>
                           </div>
                         </div>
                         <div>
                           <span className="text-[10px] text-neutral/50 uppercase tracking-wider font-bold block mb-1.5">30-Day Completion</span>
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-1.5 bg-neutral/10 rounded-full overflow-hidden">
-                              <div className="h-full bg-primary" style={{ width: `${habit.stats?.monthly || 0}%` }}></div>
+                              <div className="h-full bg-primary" style={{ width: `${stats.monthly}%` }}></div>
                             </div>
-                            <span className="text-xs font-bold text-neutral">{habit.stats?.monthly || 0}%</span>
+                            <span className="text-xs font-bold text-neutral">{stats.monthly}%</span>
                           </div>
                         </div>
                       </div>
@@ -311,7 +444,7 @@ export default function Goals({ onNavigate }: { onNavigate: (s: Screen) => void 
             
             {habits.length === 0 && (
               <div className="text-center py-8 text-neutral/60 italic">
-                No habits yet. Add one to start your journey.
+                No habits yet. Add your first habit and track progress day by day.
               </div>
             )}
           </div>

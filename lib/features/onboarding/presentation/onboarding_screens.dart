@@ -32,7 +32,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         decoration: const BoxDecoration(color: AppTheme.surface),
         child: Stack(
           children: [
-            const _SplashAura(),
             SafeArea(
               child: SukoonContent(
                 child: Padding(
@@ -42,7 +41,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     children: [
                       Flexible(
                         child: Image.asset(
-                          'Icon.png',
+                          'APP-ICON.png',
                           fit: BoxFit.contain,
                           height: 280,
                         ),

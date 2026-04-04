@@ -1,25 +1,70 @@
 import { Siren, Smile, Meh, Frown, Angry, Flame, CheckCircle2, TimerOff, Leaf, PenLine, Plus } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useRef, useState, type UIEvent } from 'react';
 import BottomNav from '../components/BottomNav';
 import { Screen } from '../App';
 
-export default function Home({ onNavigate }: { onNavigate: (s: Screen) => void }) {
+export default function Home({ onNavigate, userName }: { onNavigate: (s: Screen) => void, userName: string }) {
+  const displayName = userName.trim() || 'Friend';
+  const [headerVisible, setHeaderVisible] = useState(true);
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const lastScrollTopRef = useRef(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const hour = currentTime.getHours();
+  const greetingLine =
+    hour >= 5 && hour < 12
+      ? 'Good morning - how did you sleep?'
+      : hour >= 12 && hour < 17
+        ? 'Good afternoon - how is your day going?'
+        : hour >= 17 && hour < 22
+          ? 'Good evening - how are you unwinding?'
+          : 'Good night - how are you feeling right now?';
+
+  const handleFeedScroll = (event: UIEvent<HTMLDivElement>) => {
+    const currentScrollTop = event.currentTarget.scrollTop;
+
+    if (currentScrollTop > lastScrollTopRef.current + 8 && currentScrollTop > 40) {
+      setHeaderVisible(false);
+    } else if (currentScrollTop < lastScrollTopRef.current - 8 || currentScrollTop <= 12) {
+      setHeaderVisible(true);
+    }
+
+    lastScrollTopRef.current = currentScrollTop;
+  };
+
+  const moodButtons = [
+    { icon: Smile, bg: 'bg-secondary-light', color: 'text-secondary' },
+    { icon: Smile, bg: 'bg-surface', color: 'text-primary' },
+    { icon: Meh, bg: 'bg-surface', color: 'text-primary' },
+    { icon: Frown, bg: 'bg-tertiary-light', color: 'text-tertiary' },
+    { icon: Angry, bg: 'bg-error-light', color: 'text-error' },
+  ] as const;
+
   return (
-    <div className="flex-1 flex flex-col bg-background pb-24 overflow-y-auto">
-      <header className="sticky top-0 left-0 w-full z-40 bg-background/85 backdrop-blur-xl shadow-sm px-6 py-4 flex items-center justify-between">
+    <div onScroll={handleFeedScroll} className="scrollable-panel flex-1 h-full min-h-0 flex flex-col bg-background/65 pb-24 no-scrollbar">
+      <header className={`sticky top-0 left-0 w-full z-40 bg-background/78 backdrop-blur-xl shadow-sm px-6 py-4 flex items-center justify-between transition-transform duration-300 ${headerVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="flex flex-col">
           <span className="text-[12px] text-neutral font-medium urdu-text leading-none">Assalam-o-Alaikum</span>
           <div className="flex items-baseline gap-2">
-            <h1 className="font-headline font-bold text-[22px] text-[#2A1F1A]">Zayaan</h1>
-            <span className="text-[13px] text-neutral font-normal">Good morning — how did you sleep?</span>
+            <h1 className="font-headline font-bold text-[22px] text-[#2A1F1A]">{displayName}</h1>
+            <span className="text-[13px] text-neutral font-normal">{greetingLine}</span>
           </div>
         </div>
-        <div className="w-10 h-10 rounded-full overflow-hidden bg-surface border-2 border-primary/10">
+        <div className="icon-box w-11 h-11 rounded-full overflow-hidden border-primary/20">
           <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhDZIHWVqfYz6He7iIxBdVX4uOWsUs4H7poOLLRglpcKEJdOlBtjAyZfRAbeO7vTQ-474Q-uXysNW8s2D_tdsCT2ft-lS0HDRO0zqfBmFMq9Z2M16g0cVMcpzPh47Wj9e3oEqpUZo-1-xzHE2cwXBEsnGn8YZksM79mBCwgECRJjVmV8hLQaKbz2knC7OQ4dJUhwzsjqk7erocPaEcQu2K-G1sLSZvrQQFQwRE7oNCylutHUSH8Tu8nEW-A7Xb2WTwFEnS1nZXt1_t" alt="Profile" />
         </div>
       </header>
 
       <main className="pt-6 px-6 space-y-8">
-        <section className="bg-error-light border border-error/20 rounded-xl p-4 flex items-center justify-between">
+        <section className="premium-card bg-error-light/85 border border-error/20 rounded-xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Siren className="text-error w-6 h-6" />
             <p className="text-error font-medium text-sm">Feeling overwhelmed? You are not alone.</p>
@@ -29,40 +74,40 @@ export default function Home({ onNavigate }: { onNavigate: (s: Screen) => void }
           </button>
         </section>
 
-        <section className="bg-primary-light border border-primary/30 rounded-2xl p-6">
+        <section className="premium-card bg-primary-light/85 border border-primary/30 rounded-2xl p-6">
           <h2 className="text-[#2A1F1A] font-medium text-base mb-6">How are you feeling right now?</h2>
           <div className="flex justify-between items-center">
-            <button onClick={() => onNavigate('mood')} className="w-10 h-10 rounded-full bg-secondary-light flex items-center justify-center transition-transform active:scale-90">
-              <Smile className="text-secondary w-6 h-6" />
-            </button>
-            <button onClick={() => onNavigate('mood')} className="w-10 h-10 rounded-full bg-surface flex items-center justify-center transition-transform active:scale-90">
-              <Smile className="text-primary w-6 h-6" />
-            </button>
-            <button onClick={() => onNavigate('mood')} className="w-10 h-10 rounded-full bg-surface flex items-center justify-center transition-transform active:scale-90">
-              <Meh className="text-primary w-6 h-6" />
-            </button>
-            <button onClick={() => onNavigate('mood')} className="w-10 h-10 rounded-full bg-tertiary-light flex items-center justify-center transition-transform active:scale-90">
-              <Frown className="text-tertiary w-6 h-6" />
-            </button>
-            <button onClick={() => onNavigate('mood')} className="w-10 h-10 rounded-full bg-error-light flex items-center justify-center transition-transform active:scale-90">
-              <Angry className="text-error w-6 h-6" />
-            </button>
+            {moodButtons.map((item, index) => {
+              const Icon = item.icon;
+              return (
+                <motion.button
+                  key={`${item.color}-${index}`}
+                  onClick={() => onNavigate('mood')}
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ y: -2, scale: 1.04 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 32 }}
+                  className={`icon-box w-10 h-10 rounded-full ${item.bg}`}
+                >
+                  <Icon className={`${item.color} w-6 h-6`} />
+                </motion.button>
+              );
+            })}
           </div>
         </section>
 
         <section className="grid grid-cols-3 gap-3">
-          <div className="bg-surface border border-neutral/10 p-4 rounded-xl flex flex-col items-center text-center">
-            <Flame className="text-primary mb-2 w-6 h-6" />
+          <div className="premium-card interactive-lift p-4 rounded-xl flex flex-col items-center text-center">
+            <span className="icon-box w-10 h-10 mb-2"><Flame className="text-primary w-5 h-5" /></span>
             <span className="text-[10px] uppercase tracking-tighter text-neutral mb-1">Streak</span>
             <span className="text-sm font-bold text-primary">7 days</span>
           </div>
-          <div className="bg-surface border border-neutral/10 p-4 rounded-xl flex flex-col items-center text-center">
-            <CheckCircle2 className="text-secondary mb-2 w-6 h-6" />
+          <div className="premium-card interactive-lift p-4 rounded-xl flex flex-col items-center text-center">
+            <span className="icon-box w-10 h-10 mb-2"><CheckCircle2 className="text-secondary w-5 h-5" /></span>
             <span className="text-[10px] uppercase tracking-tighter text-neutral mb-1">Habits</span>
             <span className="text-sm font-bold text-secondary">3 today</span>
           </div>
-          <div className="bg-surface border border-neutral/10 p-4 rounded-xl flex flex-col items-center text-center">
-            <TimerOff className="text-tertiary mb-2 w-6 h-6" />
+          <div className="premium-card interactive-lift p-4 rounded-xl flex flex-col items-center text-center">
+            <span className="icon-box w-10 h-10 mb-2"><TimerOff className="text-tertiary w-5 h-5" /></span>
             <span className="text-[10px] uppercase tracking-tighter text-neutral mb-1">Detox</span>
             <span className="text-sm font-bold text-tertiary">45 min</span>
           </div>
@@ -71,22 +116,22 @@ export default function Home({ onNavigate }: { onNavigate: (s: Screen) => void }
         <section>
           <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-neutral mb-4 ml-1">Quick tools</h3>
           <div className="grid grid-cols-3 gap-3">
-            <div className="h-20 bg-secondary-light rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
-              <Leaf className="text-secondary w-6 h-6" />
+            <div className="interactive-lift h-20 bg-secondary-light rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-300 shadow-sm border border-secondary/20">
+              <span className="icon-box w-9 h-9"><Leaf className="text-secondary w-5 h-5" /></span>
               <span className="text-[12px] font-medium text-secondary">Breathe</span>
             </div>
-            <div onClick={() => onNavigate('journal')} className="h-20 bg-primary-light rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
-              <PenLine className="text-primary w-6 h-6" />
+            <div onClick={() => onNavigate('journal')} className="interactive-lift h-20 bg-primary-light rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-300 shadow-sm border border-primary/20">
+              <span className="icon-box w-9 h-9"><PenLine className="text-primary w-5 h-5" /></span>
               <span className="text-[12px] font-medium text-primary-dark">Journal</span>
             </div>
-            <div onClick={() => onNavigate('detox')} className="h-20 bg-tertiary-light rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer hover:opacity-80 transition-opacity">
-              <TimerOff className="text-tertiary w-6 h-6" />
+            <div onClick={() => onNavigate('detox')} className="interactive-lift h-20 bg-tertiary-light rounded-xl flex flex-col items-center justify-center gap-1 cursor-pointer transition-all duration-300 shadow-sm border border-tertiary/20">
+              <span className="icon-box w-9 h-9"><TimerOff className="text-tertiary w-5 h-5" /></span>
               <span className="text-[12px] font-medium text-tertiary">Detox</span>
             </div>
           </div>
         </section>
 
-        <section className="bg-surface border-l-[3px] border-primary p-5 rounded-r-xl shadow-sm">
+        <section className="premium-card interactive-lift border-l-[3px] border-primary p-5 rounded-r-xl">
           <span className="text-[10px] font-bold uppercase tracking-widest text-neutral">Today's thought</span>
           <p className="mt-2 text-neutral italic leading-relaxed">"You don't have to see the whole staircase, just take the first step. Focus on one breath at a time today."</p>
         </section>
@@ -111,7 +156,7 @@ export default function Home({ onNavigate }: { onNavigate: (s: Screen) => void }
       </main>
 
       <div className="fixed bottom-24 right-6 z-40">
-        <button onClick={() => onNavigate('mood')} className="w-14 h-14 bg-gradient-to-br from-primary-dark to-primary rounded-2xl flex items-center justify-center text-white shadow-lg hover:scale-105 active:scale-95 transition-transform">
+        <button onClick={() => onNavigate('mood')} className="interactive-lift w-14 h-14 bg-gradient-to-br from-primary-dark to-primary rounded-2xl flex items-center justify-center text-white shadow-[0_14px_24px_rgba(153,69,40,0.4)] hover:scale-105 active:scale-95 transition-transform ring-2 ring-white/50">
           <Plus className="w-8 h-8" />
         </button>
       </div>

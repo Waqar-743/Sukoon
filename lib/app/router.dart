@@ -13,7 +13,7 @@ import 'package:sukoon/features/settings/presentation/settings_screen.dart';
 import 'package:sukoon/shared/widgets/common_widgets.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {
-  final store = ref.watch(sukoonStoreProvider);
+  final store = ref.read(sukoonStoreProvider);
 
   return GoRouter(
     initialLocation: '/splash',
