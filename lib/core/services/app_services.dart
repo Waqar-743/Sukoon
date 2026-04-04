@@ -31,7 +31,16 @@ class AppServices {
   final ConnectivityService connectivity;
 
   static Future<AppServices> bootstrap() async {
-    final isar = kIsWeb ? null : await _openIsar();
+    Isar? isar;
+    if (!kIsWeb) {
+      try {
+        isar = await _openIsar().timeout(const Duration(seconds: 8));
+      } catch (error) {
+        debugPrint(
+          'Sukoon startup: Isar unavailable, using SharedPreferences fallback. $error',
+        );
+      }
+    }
     final prefs = await SharedPreferences.getInstance();
     final notifications = NotificationService();
     final audio = AudioService();

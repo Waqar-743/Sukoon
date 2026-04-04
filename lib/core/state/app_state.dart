@@ -27,7 +27,14 @@ class SukoonStore extends ChangeNotifier {
   static Future<SukoonStore> bootstrap() async {
     final services = await AppServices.bootstrap();
     final store = SukoonStore._(services);
-    await store.load();
+    try {
+      await store.load().timeout(const Duration(seconds: 10));
+    } catch (error) {
+      debugPrint(
+        'Sukoon startup: failed to restore state, recovering with defaults. $error',
+      );
+      await store._recoverFromBootstrapFailure();
+    }
     return store;
   }
 
@@ -108,6 +115,30 @@ class SukoonStore extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _recoverFromBootstrapFailure() async {
+    profile = UserProfileRecord();
+    notificationPreferences = NotificationPreferenceRecord();
+    moods = [];
+    journalEntries = [];
+    habits = [];
+    completions = [];
+    detoxSessions = [];
+    detoxChallenges = [];
+    pointsLedger = [];
+    badgeUnlocks = [];
+    affirmationFavorites = [];
+    communityPosts = [...AppContent.previewCommunityPosts];
+    isReady = true;
+
+    try {
+      await _persistPrimaryCaches();
+      await _persistCaches();
+      await _saveCommunityPosts();
+    } catch (_) {}
+
+    notifyListeners();
+  }
+
   Future<void> _ensureDefaults() async {
     final isar = services.isar;
     if (isar == null) {
@@ -130,13 +161,36 @@ class SukoonStore extends ChangeNotifier {
   Future<List<CommunityPreviewPost>> _loadCommunityPosts() async {
     final rawPosts =
         services.prefs.getStringList('community_posts') ?? <String>[];
-    return rawPosts
-        .map(
-          (item) => CommunityPreviewPost.fromJson(
-            jsonDecode(item) as Map<String, dynamic>,
+    final posts = <CommunityPreviewPost>[];
+    var hadCorruptEntry = false;
+
+    for (final item in rawPosts) {
+      try {
+        final parsed = jsonDecode(item);
+        if (parsed is! Map) {
+          hadCorruptEntry = true;
+          continue;
+        }
+        posts.add(
+          CommunityPreviewPost.fromJson(
+            Map<String, dynamic>.from(parsed),
           ),
-        )
-        .sorted((a, b) => b.createdAt.compareTo(a.createdAt));
+        );
+      } catch (_) {
+        hadCorruptEntry = true;
+      }
+    }
+
+    posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    if (hadCorruptEntry) {
+      await services.prefs.setStringList(
+        'community_posts',
+        posts.map((post) => jsonEncode(post.toJson())).toList(),
+      );
+    }
+
+    return posts;
   }
 
   Future<void> _saveCommunityPosts() async {
@@ -151,7 +205,19 @@ class SukoonStore extends ChangeNotifier {
     if (raw == null || raw.isEmpty) {
       return null;
     }
-    return fromJson(Map<String, dynamic>.from(jsonDecode(raw) as Map));
+    try {
+      final parsed = jsonDecode(raw);
+      if (parsed is! Map) {
+        throw const FormatException('Expected JSON object');
+      }
+      return fromJson(Map<String, dynamic>.from(parsed));
+    } catch (error) {
+      debugPrint(
+        'Sukoon cache recovery: resetting "$key" due to invalid JSON. $error',
+      );
+      unawaited(services.prefs.remove(key));
+      return null;
+    }
   }
 
   List<T> _readList<T>(String key, T Function(Map<String, dynamic>) fromJson) {
@@ -159,10 +225,27 @@ class SukoonStore extends ChangeNotifier {
     if (raw == null || raw.isEmpty) {
       return [];
     }
-    final decoded = jsonDecode(raw) as List<dynamic>;
-    return decoded
-        .map((item) => fromJson(Map<String, dynamic>.from(item as Map)))
-        .toList();
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) {
+        throw const FormatException('Expected JSON list');
+      }
+
+      final items = <T>[];
+      for (final item in decoded) {
+        try {
+          if (item is! Map) continue;
+          items.add(fromJson(Map<String, dynamic>.from(item)));
+        } catch (_) {}
+      }
+      return items;
+    } catch (error) {
+      debugPrint(
+        'Sukoon cache recovery: resetting "$key" due to invalid JSON. $error',
+      );
+      unawaited(services.prefs.remove(key));
+      return [];
+    }
   }
 
   Future<void> _persistPrimaryCaches() async {
