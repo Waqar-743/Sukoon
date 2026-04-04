@@ -536,11 +536,22 @@ class _OnboardingScaffold extends StatelessWidget {
                     child: SukoonSectionCard(
                       title: title,
                       subtitle: subtitle,
-                      child: SingleChildScrollView(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(minHeight: 300),
-                          child: child,
-                        ),
+                      useFlexibleChild: true,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.viewInsetsOf(context).bottom +
+                                  8,
+                            ),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: child,
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ),

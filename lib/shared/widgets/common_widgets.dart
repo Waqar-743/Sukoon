@@ -143,6 +143,7 @@ class SukoonSectionCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(20),
     this.backgroundColor,
+    this.useFlexibleChild = false,
   });
 
   final String title;
@@ -151,6 +152,7 @@ class SukoonSectionCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
   final Color? backgroundColor;
+  final bool useFlexibleChild;
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +194,7 @@ class SukoonSectionCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            child,
+            if (useFlexibleChild) Expanded(child: child) else child,
           ],
         ),
       ),
