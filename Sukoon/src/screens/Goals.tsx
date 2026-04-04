@@ -276,8 +276,9 @@ export default function Goals({ onNavigate, userName }: { onNavigate: (s: Screen
   };
 
   return (
-    <div className="scrollable-panel flex-1 h-full min-h-0 flex flex-col bg-background pb-24 relative">
-      <header className="flex justify-between items-center px-4 h-16 w-full bg-surface border-b border-neutral/10 sticky top-0 z-40">
+    <div className="flex-1 h-full min-h-0 flex flex-col bg-background relative">
+      <div className="scrollable-panel flex-1 min-h-0 pb-24">
+        <header className="flex justify-between items-center px-4 h-16 w-full bg-surface border-b border-neutral/10 sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <div className="icon-box w-9 h-9 rounded-full overflow-hidden border-primary/20">
             <img className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAO67wh2XWqz45sDVIO0jdkQMpepob5-jRv7S6J_SYAvgAtwvLPCkJtB5rzI60FDb_ahhMnsEHx6ZgAn_22U3mWvs7whkfjQ16prtjlZSfJVBTDIQ2BZsORXT_34uP_y_xR5p6CEJ0AfupLRUY9LI9e5Pyav776I6b3Sr-C3jjwYge2v8tET24VLDm1WfICm_oV1c60Bkj9vGNE-0bhYDpmCkwWp3sKHJKPA7Ik0jOdsvLDlB49UXK0v04plcQS4TivrIaCxSrT1Z8i" alt="Profile" />
@@ -287,9 +288,9 @@ export default function Goals({ onNavigate, userName }: { onNavigate: (s: Screen
         <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-neutral/5 transition-colors">
           <Bell className="text-neutral w-6 h-6" />
         </button>
-      </header>
+        </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-8 w-full">
+        <main className="max-w-2xl mx-auto px-4 py-6 space-y-8 w-full">
         <section className="premium-card interactive-lift rounded-xl p-8 flex flex-col items-center">
           <div className="relative flex items-center justify-center w-[180px] h-[180px]">
             <svg className="w-full h-full transform -rotate-90">
@@ -449,7 +450,8 @@ export default function Goals({ onNavigate, userName }: { onNavigate: (s: Screen
             )}
           </div>
         </section>
-      </main>
+        </main>
+      </div>
 
       <button onClick={openAddModal} className="fixed bottom-24 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-40">
         <Plus className="w-6 h-6" />
