@@ -18,6 +18,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   late final SukoonStore _store;
   Timer? _navigationDelay;
+  Timer? _navigationWatchdog;
   bool _didNavigate = false;
 
   @override
@@ -29,11 +30,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       const Duration(milliseconds: 900),
       _tryNavigateFromSplash,
     );
+    _navigationWatchdog = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _tryNavigateFromSplash(),
+    );
   }
 
   @override
   void dispose() {
     _navigationDelay?.cancel();
+    _navigationWatchdog?.cancel();
     _store.removeListener(_tryNavigateFromSplash);
     super.dispose();
   }
@@ -41,7 +47,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   void _tryNavigateFromSplash() {
     if (!mounted || _didNavigate || !_store.isReady) return;
     _didNavigate = true;
-    context.go(_store.onboardingComplete ? '/home' : '/start');
+    _navigationDelay?.cancel();
+    _navigationWatchdog?.cancel();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.go(_store.onboardingComplete ? '/home' : '/start');
+    });
   }
 
   @override
@@ -623,33 +634,6 @@ class _ReminderTile extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _SplashAura extends StatelessWidget {
-  const _SplashAura();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned(
-          top: -110,
-          right: -120,
-          child: _softBlob(AppTheme.primaryLight, 320),
-        ),
-        Positioned(
-          bottom: -120,
-          left: -120,
-          child: _softBlob(AppTheme.secondaryLight, 300),
-        ),
-        Positioned(
-          top: 120,
-          left: MediaQuery.sizeOf(context).width * 0.15,
-          child: _softBlob(AppTheme.tertiaryLight, 180),
-        ),
-      ],
     );
   }
 }
