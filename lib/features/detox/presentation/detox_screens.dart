@@ -221,10 +221,17 @@ class _DetoxSessionScreenState extends ConsumerState<DetoxSessionScreen> {
   bool _running = false;
   bool _completed = false;
 
+  String get _resolvedType =>
+      AppContent.sessionDurations.containsKey(widget.type)
+      ? widget.type
+      : 'quick';
+
+  int get _resolvedMinutes => AppContent.sessionDurations[_resolvedType] ?? 10;
+
   @override
   void initState() {
     super.initState();
-    _remainingSeconds = (AppContent.sessionDurations[widget.type] ?? 10) * 60;
+    _remainingSeconds = _resolvedMinutes * 60;
     _replacement = AppContent.replacementActivities.first.en;
   }
 
@@ -238,8 +245,8 @@ class _DetoxSessionScreenState extends ConsumerState<DetoxSessionScreen> {
   Future<void> _start() async {
     final store = ref.read(sukoonStoreProvider);
     _sessionId ??= await store.startDetoxSession(
-      type: widget.type,
-      plannedMinutes: AppContent.sessionDurations[widget.type] ?? 10,
+      type: _resolvedType,
+      plannedMinutes: _resolvedMinutes,
       replacementActivity: _replacement,
     );
     setState(() => _running = true);
@@ -272,7 +279,10 @@ class _DetoxSessionScreenState extends ConsumerState<DetoxSessionScreen> {
   @override
   Widget build(BuildContext context) {
     final store = ref.watch(sukoonStoreProvider);
-    final title = store.pick(AppContent.sessionTitles[widget.type]!);
+    final titleData =
+        AppContent.sessionTitles[_resolvedType] ??
+        AppContent.sessionTitles['quick']!;
+    final title = store.pick(titleData);
     final minutes = (_remainingSeconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (_remainingSeconds % 60).toString().padLeft(2, '0');
 

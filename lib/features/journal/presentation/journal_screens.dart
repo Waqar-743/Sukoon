@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -202,7 +203,9 @@ class _JournalEditorScreenState extends ConsumerState<JournalEditorScreen> {
     final store = ref.read(sukoonStoreProvider);
     final existing = widget.entryId == null
         ? null
-        : store.journalEntries.firstWhere((item) => item.id == widget.entryId);
+        : store.journalEntries.firstWhereOrNull(
+            (item) => item.id == widget.entryId,
+          );
     _savedId = existing?.id;
     _promptId = widget.promptId ?? existing?.promptId;
     _linkedMoodId = existing?.moodEntryId;
@@ -341,7 +344,32 @@ class JournalEntryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final store = ref.watch(sukoonStoreProvider);
-    final entry = store.journalEntries.firstWhere((item) => item.id == entryId);
+    final entry = store.journalEntries.firstWhereOrNull(
+      (item) => item.id == entryId,
+    );
+    if (entry == null) {
+      return Scaffold(
+        appBar: AppBar(title: Text(store.tr('Journal entry', 'Journal entry'))),
+        body: SukoonContent(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              EmptyStateCard(
+                title: store.tr('Entry not found', 'Entry not found'),
+                message: store.tr(
+                  'This reflection is no longer available. Try opening another entry from your journal list.',
+                  'Yeh reflection ab dastiyab nahin. Journal list se koi dusri entry kholen.',
+                ),
+                action: FilledButton.tonal(
+                  onPressed: () => context.go('/journal'),
+                  child: Text(store.tr('Back to journal', 'Back to journal')),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     final linkedMood = store.moodById(entry.moodEntryId);
 
     return Scaffold(

@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -216,7 +217,7 @@ class _HabitEditScreenState extends ConsumerState<HabitEditScreen> {
     final store = ref.read(sukoonStoreProvider);
     final habit = widget.habitId == null
         ? null
-        : store.habits.firstWhere((item) => item.id == widget.habitId);
+        : store.habits.firstWhereOrNull((item) => item.id == widget.habitId);
     _nameController.text = habit?.name ?? '';
     _category = habit?.category ?? _category;
     _frequency = habit?.frequency ?? _frequency;
