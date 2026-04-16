@@ -1,5 +1,5 @@
 <p align="center">
-	<img src="./APP-ICON.png" alt="Sukoon App Icon" width="140" />
+	<img src="./assets/readme/app-icon-rounded-border.png" alt="Sukoon App Icon" width="140" />
 </p>
 
 <h1 align="center">Sukoon</h1>
