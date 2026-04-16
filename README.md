@@ -1,6 +1,12 @@
-# Sukoon
+<p align="center">
+	<img src="./APP-ICON.png" alt="Sukoon App Icon" width="140" />
+</p>
 
-Sukoon is an emotional wellness application focused on helping students manage stress, track habits, and build healthier digital routines.
+<h1 align="center">Sukoon</h1>
+
+<p align="center">
+	Sukoon is an emotional wellness application focused on helping students manage stress, track habits, and build healthier digital routines.
+</p>
 
 This repository currently contains:
 - The primary Flutter mobile application
@@ -124,4 +130,8 @@ The app uses dedicated scroll containers (`scrollable-panel`) on long screens. I
 
 - This project is under active iteration.
 - Web prototype and Flutter app may progress at different speeds during UI experiments.
+
+---
+
+<p align="center"><strong>Ultimate Sukoon is In the Grave</strong></p>
 
